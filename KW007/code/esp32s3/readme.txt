@@ -7,3 +7,10 @@ Serial Monitor Speed: 115200 baud;
 
 for the .ino file, you can put it in the C:\Users\your_name\Documents\Arduino
 It will generate a folder in it.
+
+
+Tip 1:
+If you want see the results on serial monitor in Arduino IDE, you have to enable :
+Tools (on the top menu bar) > USB CDC on Boot > Enable
+
+Some board are disabled by default.
