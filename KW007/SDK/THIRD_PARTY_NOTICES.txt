@@ -1,0 +1,44 @@
+Third-party documentation assets
+===============================
+The Apache-2.0 grant for the KW007 SDK does not replace the licenses
+of third-party components bundled in Docs/html/ or its compiled CHM.
+Existing file notices have been preserved.
+
+Doxygen JavaScript (dynsections.js, menu.js, menudata.js, navtree.js,
+navtreedata.js, search/search.js):
+Copyright (C) 1997-2020 by Dimitri van Heesch
+
+cookie.js:
+Copyright (c) 2023 Dimitri van Heesch
+
+clipboard.js:
+Copyright (c) 2021 - 2022 jothepro
+
+jquery.js contains the following notices:
+- jQuery v3.6.0: (c) OpenJS Foundation and other contributors
+- jQuery UI v1.13.2: Copyright jQuery Foundation and other contributors
+- Copyright (c) 2007 Ariel Flesler
+- Copyright (c) 2018 Steven Benner
+- Copyright 2011-2014, Dave Furfero (MIT or GPL Version 2; MIT used here)
+- Copyright Vasil Dinkov, Vadikom Web Ltd.
+
+These components identify their license as MIT (or offer MIT as an
+alternative). The MIT permission and disclaimer follow:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
