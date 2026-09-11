@@ -1,1 +1,3 @@
-It need a FTDI2XX - I2C to USB converter / adapeter to use in windows OS.
+It need a FT232H or 
+CH341 USB-to-12C adapter
+to use in windows OS.
