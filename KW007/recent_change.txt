@@ -5,3 +5,4 @@ Added SDK_by_MCU folder.
 
 SDK Upgrade to v1.3
  Add sensitivie control;
+ Range 1 now can directly connect to GND for enable software tunning.
