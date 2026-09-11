@@ -1,0 +1,1 @@
+It need a FTDI2XX - I2C to USB converter / adapeter to use in windows OS.
