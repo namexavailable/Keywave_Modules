@@ -1,0 +1,1181 @@
+<!--
+  Copyright 2026 Keywave Technology Ltd
+
+  SPDX-License-Identifier: Apache-2.0
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  "Keywave", "KW307" and the Keywave logo are trademarks of Keywave
+  Technology Ltd and are not licensed under the Apache License.
+-->
+<title>KW307 Radar Guide</title>
+<style>
+  /* Instrument panel, not brochure. Cool-biased neutrals, one signal-teal
+     accent, and monospace carrying every measured thing — section numbers,
+     table headers, the frequency row — so the page reads the way the subject
+     is read. */
+  :root{
+    --bg:#f7f8f9; --panel:#ffffff;
+    --ink:#12171c; --ink2:#3c464f; --ink3:#6d7a85;
+    --line:#dde3e7; --line2:#eef1f3;
+    --signal:#116b78; --signal-bg:#e7f2f3;
+    --caution:#8a5f14; --caution-bg:#fbf4e6;
+    --code-bg:#eef1f3;
+    --band-a:#eaf1f2; --band-b:#eef0f4;
+    --box:#ffffff; --box-line:#93a1aa;
+    --sw:#fdf3c8; --sw-line:#c3a15c; --wire:#3b6fa8;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f1417; --panel:#151b1f;
+      --ink:#e8edef; --ink2:#b3bdc4; --ink3:#7f8c95;
+      --line:#242e34; --line2:#1c2429;
+      --signal:#4fbecd; --signal-bg:#10262a;
+      --caution:#d9ab55; --caution-bg:#26200f;
+      --code-bg:#171e22;
+      --band-a:#132124; --band-b:#171a21;
+      --box:#1a2226; --box-line:#4a5a63;
+      --sw:#3a3413; --sw-line:#7c6526; --wire:#6f9fd0;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1417; --panel:#151b1f;
+    --ink:#e8edef; --ink2:#b3bdc4; --ink3:#7f8c95;
+    --line:#242e34; --line2:#1c2429;
+    --signal:#4fbecd; --signal-bg:#10262a;
+    --caution:#d9ab55; --caution-bg:#26200f;
+    --code-bg:#171e22;
+    --band-a:#132124; --band-b:#171a21;
+    --box:#1a2226; --box-line:#4a5a63;
+    --sw:#3a3413; --sw-line:#7c6526; --wire:#6f9fd0;
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{background:var(--bg); color:var(--ink); margin:0;
+       font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+  .wrap{max-width:1280px; margin:0 auto; padding:56px 28px 96px;
+        display:flex; flex-direction:column; gap:0;}
+
+  /* ---- masthead ---- */
+  /* Masthead: the Keywave card, then the title block beside it. The card
+     carries its own background, so it reads the same on either theme and does
+     not need a light and a dark version. */
+  .mast{display:flex; align-items:flex-start; gap:26px; margin:0 0 30px;}
+  .mast .logo{flex:none; border-radius:4px; display:block;}
+  .mast-t{min-width:0;}
+  @media (max-width:560px){
+    .mast{flex-direction:column; gap:18px;}
+  }
+  h1{font-size:clamp(26px,3.4vw,34px); line-height:1.12; margin:0 0 10px;
+     letter-spacing:-0.022em; text-wrap:balance; max-width:28ch;}
+  .sub{color:var(--ink2); font-size:17px; margin:0 0 20px;}
+  .ver{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+       color:var(--ink3); font-size:12.5px; letter-spacing:0.02em;
+       margin:0 0 6px; padding-top:18px; border-top:2px solid var(--ink);}
+  .lead{font-size:17.5px; color:var(--ink2); margin:30px 0 0;}
+
+  /* ---- sections: the number sits in a rail, because the order is the
+          signal's order and that is information ---- */
+  h2{font-size:24px; margin:64px 0 2px; padding-top:22px;
+     border-top:1px solid var(--line); letter-spacing:-0.018em;
+     text-wrap:balance; display:flex; align-items:baseline; gap:16px;}
+  /* The section number is a second voice beside the heading, not a footnote
+     to it: monospace against the body face, accent against the ink, and close
+     enough in size to be read at the same glance. The width is absolute so a
+     one-digit and a two-digit number start their heading in the same place. */
+  h2 .n{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+        font-size:19px; font-weight:400; color:var(--signal);
+        letter-spacing:0.06em; flex:none; width:46px;
+        font-variant-numeric:tabular-nums;}
+  /* Contents. Two columns so fifteen sections read as a map rather than a
+     queue. The numbers get the same monospace-and-accent treatment as the
+     headings they point at, scaled to the smaller type - they sit inside a
+     padded box, so they cannot share a column with the headings themselves. */
+  .toc{margin:34px 0 44px; padding:20px 22px 22px;
+       border:1px solid var(--line2); border-radius:6px; background:var(--panel);}
+  .toc ol{margin:0; padding:0; list-style:none;
+          columns:2; column-gap:38px;}
+  .toc li{break-inside:avoid; margin:0 0 2px;}
+  .toc a{display:flex; gap:0; align-items:baseline; text-decoration:none;
+         color:var(--ink2); padding:3px 0; border-bottom:1px solid transparent;}
+  .toc a:hover{color:var(--ink); border-bottom-color:var(--line2);}
+  .toc a:focus-visible{outline:2px solid var(--signal); outline-offset:2px;}
+  .toc .n{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+          font-size:14px; color:var(--signal); letter-spacing:0.06em;
+          flex:none; width:34px; font-variant-numeric:tabular-nums;}
+  .toc ol.sub{columns:auto; margin:1px 0 7px 46px; padding:0;}
+  .toc ol.sub a{padding:2px 0; font-size:14px; color:var(--ink3);}
+  .toc ol.sub a:hover{color:var(--ink2);}
+  .toc ol.sub .n{font-size:12.5px; width:30px;}
+  @media (max-width:640px){ .toc ol{columns:1;} }
+
+  /* A table caption sits under the table it explains, and the level tables
+     lead with their numbers, so the number columns get the monospace column
+     treatment the headings use. */
+  p.cap{margin:8px 0 26px; font-size:13.5px; color:var(--ink3);}
+  table.levels td{font-variant-numeric:tabular-nums;}
+  table.levels td:first-child{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+                              color:var(--signal); white-space:nowrap;}
+  table.levels em{font-style:normal; color:var(--ink3); font-size:12.5px;}
+
+  /* h3 is a stage of the section above it and carries N.M, so it gets the
+     heading treatment one step down from h2. h4 is a heading inside a stage
+     and carries no number - it is what h3 used to be. */
+  h3{font-size:19px; margin:44px 0 2px; letter-spacing:-0.012em;
+     text-wrap:balance; display:flex; align-items:baseline; gap:16px;}
+  h3 .n{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+        font-size:15px; font-weight:400; color:var(--signal);
+        letter-spacing:0.06em; flex:none; width:46px;
+        font-variant-numeric:tabular-nums;}
+  h4{font-size:16px; margin:30px 0 4px; letter-spacing:-0.006em;
+     color:var(--ink);}
+  p{margin:12px 0; color:var(--ink2);}
+  ul,ol{color:var(--ink2); padding-left:20px;}
+  li{margin:6px 0;}
+  strong{color:var(--ink); font-weight:600;}
+  em{font-style:normal; color:var(--ink); font-weight:500;}
+
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+       font-size:0.885em; background:var(--code-bg); padding:1.5px 5px;
+       border-radius:3px;}
+  pre{background:var(--panel); border:1px solid var(--line);
+      border-left:2px solid var(--signal); border-radius:0 5px 5px 0;
+      padding:16px 18px; overflow-x:auto; font-size:13px; line-height:1.72;
+      margin:16px 0;}
+  pre code{background:none; padding:0; font-size:inherit;}
+
+  .scroll{overflow-x:auto; margin:18px 0; border:1px solid var(--line);
+          border-radius:5px; background:var(--panel);}
+  table{border-collapse:collapse; width:100%; font-size:14.5px; margin:0;}
+  th,td{text-align:left; padding:9px 14px; border-bottom:1px solid var(--line2);
+        vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+
+  /* Printing. There is no PDF of this guide to keep in step with it, so the
+     page has to be the thing that prints: light ink regardless of the screen
+     theme, the theme switch gone, and nothing split across a page break that
+     is read as one piece. */
+  @media print{
+    :root, :root[data-theme="dark"]{
+      --bg:#fff; --panel:#fff; --box:#fff; --ink:#000; --ink2:#222; --ink3:#555;
+      --line:#bbb; --line2:#ddd;
+    }
+    body{background:#fff; color:#000; font-size:10.5pt;}
+    .themesw{display:none !important;}
+    a{color:inherit; text-decoration:none;}
+    h2{break-before:page; break-after:avoid;}
+    h1 + *, h2 + *, h3 + *{break-before:avoid;}
+    h3, figure, table, pre, .note, .warn{break-inside:avoid;}
+    .toc{break-inside:avoid; break-after:page;}
+    .toc a{color:#000;}
+    .scroll{overflow:visible;}
+    figure svg{max-width:100%; height:auto;}
+  }
+
+  /* The generated reference (section 11). Its cells hold the headers' own
+     text, including layouts - byte maps, level tables - whose alignment is the
+     content, so those keep a monospace block and scroll rather than reflow. */
+  h3 .src{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+          font-size:11.5px; color:var(--ink3); font-weight:400;
+          letter-spacing:0.02em; margin-left:.5em;}
+  h3 .tier{font-size:11px; color:var(--signal); border:1px solid var(--line2);
+           border-radius:3px; padding:1px 6px; margin-left:.4em;
+           letter-spacing:.06em; text-transform:uppercase;}
+  td p{margin:0 0 .5em 0;}
+  td p:last-child{margin-bottom:0;}
+  h4 + p{margin-top:6px;}
+  td pre{margin:.4em 0; padding:.5em .7em; background:var(--panel);
+         border-left:2px solid var(--line2); overflow-x:auto;
+         font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+         font-size:12px; line-height:1.45; white-space:pre;}
+  td code{white-space:pre-wrap; word-break:break-word;}
+  th{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+     color:var(--ink3); font-weight:400; font-size:11px; letter-spacing:0.09em;
+     text-transform:uppercase; white-space:nowrap;
+     border-bottom:1px solid var(--line); background:var(--bg);}
+  td code{white-space:nowrap;}
+  /* the cutoff row is a scale: line the numbers up */
+  .freq td,.freq th{text-align:center; font-variant-numeric:tabular-nums;
+                    padding:9px 10px;}
+  .freq td:first-child,.freq th:first-child{text-align:left; white-space:nowrap;}
+
+  .note,.warn{padding:14px 18px; margin:22px 0; border-radius:0 5px 5px 0;}
+  .note{background:var(--signal-bg); border-left:2px solid var(--signal);}
+  .warn{background:var(--caution-bg); border-left:2px solid var(--caution);}
+  .note p,.warn p{max-width:none;}
+  .note p:first-child,.warn p:first-child{margin-top:0;}
+  .note p:last-child,.warn p:last-child{margin-bottom:0;}
+  .warn strong{color:var(--caution);}
+  .note strong{color:var(--signal);}
+
+  figure{margin:30px 0 8px;}
+  figcaption{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+             color:var(--ink3); font-size:12px; line-height:1.65; margin-top:14px;
+             letter-spacing:0.005em;}
+  .figbox{overflow-x:auto; border:1px solid var(--line); border-radius:6px;
+          background:var(--panel); padding:14px;}
+  svg{display:block; width:100%; min-width:760px; height:auto;}
+
+  /* Theme switch. The page follows the viewer's system setting until someone
+     picks, and then the pick wins and is remembered. */
+  .themesw{position:fixed; top:14px; right:16px; z-index:10; display:flex;
+           border:1px solid var(--line); border-radius:5px; overflow:hidden;
+           background:var(--panel);}
+  .themesw button{appearance:none; border:0; cursor:pointer; margin:0;
+                  padding:6px 11px; background:transparent; color:var(--ink3);
+                  font:11px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+                  letter-spacing:0.09em;}
+  .themesw button + button{border-left:1px solid var(--line);}
+  .themesw button[aria-pressed="true"]{background:var(--signal); color:var(--panel);}
+  .themesw button:hover:not([aria-pressed="true"]){color:var(--ink);}
+  @media print{.themesw{display:none;}}
+
+  a{color:var(--signal);}
+  a:focus-visible,:focus-visible{outline:2px solid var(--signal); outline-offset:2px;}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important;}}
+</style>
+
+<script>
+  /* Before first paint: a stored pick wins, otherwise leave the attribute off
+     and let prefers-color-scheme decide. */
+  try{ var _t = localStorage.getItem('kw307-theme');
+       if (_t) document.documentElement.setAttribute('data-theme', _t); }catch(e){}
+</script>
+
+<div class="themesw" role="group" aria-label="Colour theme">
+  <button type="button" data-t="light" aria-pressed="false">LIGHT</button>
+  <button type="button" data-t="dark"  aria-pressed="false">DARK</button>
+</div>
+
+<div class="wrap">
+
+<header class="mast">
+  <img class="logo" src="data:image/png;base64,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" width="120" height="88"
+       alt="Keywave Technology">
+  <div class="mast-t">
+<h1>KW307 SDK User Guide</h1>
+
+<p class="sub">24 GHz human-presence radar over UART — how it works, and the call that changes each part of it</p>
+
+<p class="ver"><strong>SDK 2.17.1</strong> · module firmware <strong>2.10.0</strong> and newer · 2026-10-13</p>
+
+<p class="lead">Start at <strong>Quick start</strong>: the smallest program that works. The chapters after it follow the signal from the antenna to the target list, one section per block of the diagram, each ending with the calls that change that block. The <strong>UART protocol</strong> chapter at the end gives the bytes, for a host that does not run the SDK.</p>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+<ol>
+<li><a href="#quick-start"><span class="n">1</span>Quick start</a></li>
+<ol class="sub">
+<li><a href="#build-integration"><span class="n">1.1</span>Build integration</a></li>
+<li><a href="#uart-port-functions"><span class="n">1.2</span>UART port functions</a></li>
+<li><a href="#minimal-example-program"><span class="n">1.3</span>Minimal example program</a></li>
+<li><a href="#frame-contents"><span class="n">1.4</span>Frame contents</a></li>
+</ol>
+<li><a href="#output-modes"><span class="n">2</span>Output modes</a></li>
+<ol class="sub">
+<li><a href="#output-mode-setup"><span class="n">2.1</span>Output mode setup</a></li>
+<li><a href="#switching-modes-while-running"><span class="n">2.2</span>Switching modes while running</a></li>
+<li><a href="#custom-output-frames"><span class="n">2.3</span>Custom output frames</a></li>
+</ol>
+<li><a href="#error-handling"><span class="n">3</span>Error handling</a></li>
+<ol class="sub">
+<li><a href="#write-verify"><span class="n">3.1</span>Write verify</a></li>
+</ol>
+<li><a href="#signal-path"><span class="n">4</span>Signal path</a></li>
+<ol class="sub">
+<li><a href="#static-clutter-rejection-and-doppler-filters"><span class="n">4.1</span>Static clutter rejection and Doppler filters</a></li>
+<li><a href="#background-update-control"><span class="n">4.2</span>Background update control</a></li>
+<li><a href="#distance-angle-and-speed-extraction"><span class="n">4.3</span>Distance, angle and speed extraction</a></li>
+<li><a href="#detection-threshold"><span class="n">4.4</span>Detection threshold</a></li>
+<li><a href="#tracking-algorithm"><span class="n">4.5</span>Tracking algorithm</a></li>
+<li><a href="#line-of-sight-filtering"><span class="n">4.6</span>Line-of-sight filtering</a></li>
+<li><a href="#detect-range-and-field-of-view"><span class="n">4.7</span>Detect range and field of view</a></li>
+<li><a href="#presence-flag"><span class="n">4.8</span>Presence flag</a></li>
+</ol>
+<li><a href="#application-examples"><span class="n">5</span>Application examples</a></li>
+<li><a href="#function-reference"><span class="n">6</span>Function reference</a></li>
+<ol class="sub">
+<li><a href="#session"><span class="n">6.1</span>Session</a></li>
+<li><a href="#filters"><span class="n">6.2</span>Filters</a></li>
+<li><a href="#detection-and-reporting"><span class="n">6.3</span>Detection and reporting</a></li>
+<li><a href="#custom-frames"><span class="n">6.4</span>Custom frames</a></li>
+<li><a href="#trackers"><span class="n">6.5</span>Trackers</a></li>
+<li><a href="#front-end-and-power"><span class="n">6.6</span>Front end and power</a></li>
+</ol>
+<li><a href="#uart-protocol"><span class="n">7</span>UART protocol</a></li>
+<ol class="sub">
+<li><a href="#uart-link-settings"><span class="n">7.1</span>UART link settings</a></li>
+<li><a href="#uart-frame-format"><span class="n">7.2</span>UART frame format</a></li>
+<li><a href="#write-and-read-requests"><span class="n">7.3</span>Write and read requests</a></li>
+<li><a href="#output-frame-layouts"><span class="n">7.4</span>Output frame layouts</a></li>
+</ol>
+</ol>
+</nav>
+
+<h2 id="quick-start"><span class="n">1</span>Quick start</h2>
+
+<p>Settings take effect only once the module is running and reporting. Getting there takes five functions that you write, three calls that the SDK provides, and a main loop.</p>
+
+<figure>
+<div class="figbox">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" role="img" aria-label="How the SDK, your code and the module fit together">
+  <title>What you write, what the SDK is, and where the module sits</title>
+  <style>.h{font:600 17px system-ui,sans-serif;fill:var(--ink)}.m{font:14px ui-monospace,SFMono-Regular,Menlo,monospace;fill:var(--ink)}.cm{font:14px ui-monospace,SFMono-Regular,Menlo,monospace;fill:var(--ink3)}.c{font:15px system-ui,sans-serif;fill:var(--ink3)}.mod{font:600 20px system-ui,sans-serif;fill:var(--box)}</style>
+  <rect x="20" y="30" width="840" height="480" rx="10" fill="none" stroke="var(--line)" stroke-width="1.6"/>
+  <text class="c" x="36" y="22">Your board  -  any MCU with a UART</text>
+  <rect x="44" y="62" width="792" height="140" rx="8" fill="var(--box)" stroke="var(--box-line)" stroke-width="1.6"/>
+  <text class="h" x="64" y="88">Your application</text>
+  <text class="m" x="64" y="116">#include "KW307_api.h"</text>
+  <text class="cm" x="330" y="116">one include - the rest comes with it</text>
+  <text class="m" x="64" y="137">kw307_init();</text>
+  <text class="cm" x="330" y="137">opens the UART named in user_config.h</text>
+  <text class="m" x="64" y="158">kw307_on_frame(on_radar);</text>
+  <text class="cm" x="330" y="158">your callback, once per frame</text>
+  <text class="m" x="64" y="179">while (1) kw307_update();</text>
+  <text class="cm" x="330" y="179">pumps the receive path</text>
+  <rect x="44" y="238" width="792" height="140" rx="8" fill="var(--band-a)" stroke="var(--wire)" stroke-width="1.6"/>
+  <text class="h" x="64" y="264">KW307 SDK  -  portable C, in core/</text>
+  <text class="m" x="64" y="292">KW307_api.h</text>
+  <text class="cm" x="330" y="292">every setting</text>
+  <text class="m" x="64" y="313">KW307_io.h</text>
+  <text class="cm" x="330" y="313">init / update / the frame callbacks</text>
+  <text class="m" x="64" y="334">KW307_protocol.h</text>
+  <text class="cm" x="330" y="334">the frame structs</text>
+  <text class="m" x="64" y="355">KW307_cmd.h  KW307_uart.h</text>
+  <text class="cm" x="330" y="355">framing and CRC - internal</text>
+  <rect x="44" y="414" width="792" height="78" rx="8" fill="var(--sw)" stroke="var(--sw-line)" stroke-width="1.6"/>
+  <text class="h" x="64" y="440">KW307_port.h  +  user_config.h</text>
+  <text class="c" x="64" y="468">the five UART functions you write, and which port they open</text>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink3)"/></marker></defs>
+  <path d="M 440 206 L 440 232" stroke="var(--ink3)" stroke-width="2" marker-end="url(#a)"/>
+  <path d="M 440 382 L 440 408" stroke="var(--ink3)" stroke-width="2" marker-end="url(#a)"/>
+  <path d="M 410 498 L 410 548 M 470 548 L 470 498" stroke="var(--ink3)" stroke-width="2" marker-end="url(#a)"/>
+  <text class="c" x="500" y="532">UART  115200 8N1</text>
+  <rect x="330" y="554" width="220" height="62" rx="8" fill="var(--wire)"/>
+  <text class="mod" x="440" y="592" text-anchor="middle">KW307</text>
+  <text class="c" x="440" y="640" text-anchor="middle">24 GHz radar module</text>
+</svg>
+</div>
+<figcaption>You write the top box and the bottom one. Everything between them ships as C source.</figcaption>
+</figure>
+
+<h3 id="build-integration"><span class="n">1.1</span>Build integration</h3>
+
+<p>Add every <code>.c</code> file under <code>core/</code> and every <code>.h</code> file beside them. There is no build system to adopt and nothing to configure at compile time. Add the files, add <code>core/</code> to your include path, and you have a C99 library with no dependency beyond <code>stdint.h</code> and <code>stdbool.h</code>.</p>
+
+<h3 id="uart-port-functions"><span class="n">1.2</span>UART port functions</h3>
+
+<p>The SDK never touches your hardware. It calls out to these, and you point them at whatever UART your board has:</p>
+
+<pre><code>int  kw307_port_open (const char* port_name, int baud_rate);
+void kw307_port_close(void);
+int  kw307_port_send (const uint8_t* buf, int len);
+int  kw307_port_recv (uint8_t* buf, int max_len, int timeout_ms);
+int  kw307_port_is_open(void);</code></pre>
+
+<p>Any host with a UART can run this. The SDK is plain C: no RTOS, no heap, no floating point, no vendor library. The five functions above are the complete port, whether the host is an ARM part, an AVR, bare metal or an RTOS.</p>
+
+<p><code>example_platform/port_template/</code> is a working skeleton with those five left as <code>TODO</code>. If your host is close to <code>STM32_HAL/</code>, <code>Arduino/</code>, <code>RPi_Pico/</code>, <code>pc_win32/</code> or <code>pc_linux/</code>, start from that one instead. Those are finished ports, not a list of what is supported.</p>
+
+<p>The port they open is an ordinary UART at <strong>115200 baud, 8 data bits, no parity, one stop bit, no flow control</strong>, at <strong>3.3 V TTL</strong>. Those settings are in <code>user_config.h</code> next to the port you are writing, and the baud rate has to match the module's — 115200 is what it ships with.</p>
+
+<p class="note"><code>kw307_port_recv()</code> must not block past <code>timeout_ms</code>, and must return what it has rather than waiting for a full buffer. Everything the SDK does on top — every read-back, every blocking command — is built on that one promise.</p>
+
+<p>Every read-back waits about 200 ms (<code>KW307_READ_TIMEOUT_MS</code>) for the module's answer and then returns <code>KW307_ERR_TIMEOUT</code>, so no call can hang.</p>
+
+<h3 id="minimal-example-program"><span class="n">1.3</span>Minimal example program</h3>
+
+<pre><code>#include "KW307_api.h"
+
+static void on_radar(const KW307Frame_t* f)
+{
+    set_led(f-&gt;presence_flag);                  /* 1 while someone is there */
+}
+
+int main(void)
+{
+    board_init();                            /* your clocks, pins, UART */
+
+    if (kw307_init() != KW307_OK) return 1;  /* opens the port, starts the link */
+    kw307_on_frame(on_radar);                /* your callback, one per frame */
+
+    for (;;) kw307_update();                 /* reads the UART, runs callbacks */
+}</code></pre>
+
+<p><code>kw307_update()</code> does not block. Call it as often as your loop runs; the module sends a frame about twenty times a second and <code>on_radar</code> fires once per frame.</p>
+
+<p>That program never configures the module, and it works: the module boots with the settings in its own flash and starts streaming. Configuration is what the rest of this guide is about, and it needs no second header — <code>KW307_api.h</code> is the only one you ever include. It pulls in the rest, so every call in this guide is in scope from that one line.</p>
+
+<p class="note">Call <code>kw307_check_fw_version()</code> once after <code>kw307_init()</code>. It returns <code>0</code> when the firmware is compatible, <code>1</code> on firmware 2.7.6, and a negative code if the module did not answer. On 2.7.6 the calls marked <em>Not available on firmware 2.7.6</em> return <code>KW307_ERR_NOT_SUPPORTED</code>.</p>
+
+<h3 id="frame-contents"><span class="n">1.4</span>Frame contents</h3>
+
+<pre><code>typedef struct {
+    uint16_t       frame_index;   /* frame counter */
+    uint8_t        presence_flag;    /* 1 = presence this frame */
+    KW307Tracker_t moving[2];     /* walking, gesturing */
+    KW307Tracker_t stationary[1]; /* a seated person, micro-motion */
+} KW307Frame_t;</code></pre>
+
+<p>The pointer is valid for the length of the callback. Copy out what you need.</p>
+
+<p class="warn"><strong>Use a slot only when its <code>state</code> says Valid.</strong> <code>state != 0</code> is not that test. The other non-zero values mean a target is being confirmed, or is deliberately hidden, and using those makes one person appear as two. Valid is <code>1</code> in the simple reporting form, the default. After <code>kw307_set_tracker_state_advanced_mode(true)</code>, a moving target is Valid at <code>3</code> instead. <code>core/KW307_protocol.h</code> lists every state value.</p>
+
+<p>Each slot also carries <code>counter</code>, which rises while the target keeps being seen and falls when it is missed. It is useful as a confidence or fade level.</p>
+
+<h2 id="output-modes"><span class="n">2</span>Output modes</h2>
+
+<p>The quick start showed one output. There are three, and the difference between them is only <strong>how much each frame carries</strong>. Every one of them reports presence, two moving targets and one stationary target — that part never changes. What changes is what is added on top.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Mode</th><th>What it adds</th><th>Payload</th><th>Your callback</th><th>Struct</th></tr>
+<tr><td><code>KW307_OUTPUT_NORMAL</code></td><td>— the default frame</td><td>27 B</td><td><code>kw307_on_frame()</code></td><td><code>KW307Frame_t</code></td></tr>
+<tr><td><code>KW307_OUTPUT_NORMAL_WITH_SPD</code></td><td>how fast each moving target is going</td><td>34 B</td><td><code>kw307_on_frame_spd()</code></td><td><code>KW307FrameSpd_t</code></td></tr>
+<tr><td><code>KW307_OUTPUT_NORMAL_WITH_SPD_RG</code></td><td>the above, plus the four nearest stationary range gates</td><td>66 B</td><td><code>kw307_on_frame_spd_rg()</code></td><td><code>KW307FrameSpdRg_t</code></td></tr>
+</table>
+</div>
+
+<p>There is also <code>KW307_OUTPUT_OFF</code>, which stops the stream. The radar keeps running; frames are no longer sent.</p>
+
+<p><strong>If you are not sure: use <code>KW307_OUTPUT_NORMAL_WITH_SPD</code>.</strong> It is the default frame plus the one field most products end up wanting, and it costs 7 bytes a frame.</p>
+
+<p>The three structs are in <strong><code>core/KW307_protocol.h</code></strong>, field by field: what each one means, what <code>state</code> is allowed to be and which value means a real target, what the speed units are, and what the range gates are and are not. Please refer to that file for each field's details.</p>
+
+<h3 id="output-mode-setup"><span class="n">2.1</span>Output mode setup</h3>
+
+<p>Whichever mode you pick, the two steps are the same — register the callback, then select the mode:</p>
+
+<pre><code>kw307_on_frame_spd(on_radar);                     /* 1. where frames go   */
+kw307_set_output(KW307_OUTPUT_NORMAL_WITH_SPD);   /* 2. what to send      */
+
+while (1) { kw307_update(); }                     /* 3. read the UART     */</code></pre>
+
+<p><strong>Register before you select.</strong> Frames start arriving as soon as the module is told to send them. If the callback is not in place yet, the first few frames are lost.</p>
+
+<p><code>kw307_update()</code> reads the UART and calls your callback. If it is not called regularly, no frames are delivered, so check this first when no frames arrive.</p>
+
+<h3 id="switching-modes-while-running"><span class="n">2.2</span>Switching modes while running</h3>
+
+<p>You can change mode at any time — a calibration typically goes into <code>KW307_OUTPUT_NORMAL_WITH_SPD_RG</code>, takes its reading, and returns to <code>KW307_OUTPUT_NORMAL_WITH_SPD</code>:</p>
+
+<pre><code>kw307_on_frame_spd(on_normal);        /* register both, once, at start-up */
+kw307_on_frame_spd_rg(on_gates);
+
+...
+
+kw307_set_output(KW307_OUTPUT_NORMAL_WITH_SPD_RG);   /* measure   */
+...
+kw307_set_output(KW307_OUTPUT_NORMAL_WITH_SPD);      /* and back  */</code></pre>
+
+<p><strong>Register every callback you might use, once, at start-up.</strong> There is nothing to unregister when you switch: only the selected mode's frames are sent, so only its callback fires. Frames still in flight from the previous mode are matched to the right callback on the way in, not mis-read.</p>
+
+<h3 id="custom-output-frames"><span class="n">2.3</span>Custom output frames</h3>
+
+<p><code>KW307_OUTPUT_NORMAL_WITH_SPD</code> and <code>KW307_OUTPUT_NORMAL_WITH_SPD_RG</code> are two fixed shapes of one frame, <code>0xF3</code>, which can carry any mix of eight blocks. When neither fits, pick the blocks yourself: each call below switches one block on or off in a <code>KW307OutputConfig_t</code>, and <code>kw307_set_output_config()</code> sends the result in one write.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Call</th><th>Block</th></tr>
+<tr><td><code>kw307_out_presence(c, on)</code></td><td>presence flag</td></tr>
+<tr><td><code>kw307_out_moving_trk(c, on, full, speed)</code></td><td>the two moving trackers; <code>full</code> = whole records rather than state only, <code>speed</code> = each one's speed</td></tr>
+<tr><td><code>kw307_out_stationary(c, nearest, second)</code></td><td>the nearest and second-nearest stationary targets</td></tr>
+<tr><td><code>kw307_out_stationary_trk(c, on, full)</code></td><td>the four stationary-band trackers, with their raw state: 0 Empty, 1 Checking, 2 Birth, 3 Valid</td></tr>
+<tr><td><code>kw307_out_room_max(c, on)</code></td><td>the room's peak magnitude, per band</td></tr>
+<tr><td><code>kw307_out_rg(c, start_rg, end_rg, moving, stationary, mag_only)</code></td><td>range gates <code>start_rg</code>~<code>end_rg</code>, per band</td></tr>
+</table>
+</div>
+
+<p>Start from <code>kw307_out_clear()</code>, or from the shape you are nearest to — <code>kw307_out_normal_with_spd()</code> and <code>kw307_out_normal_with_spd_rg()</code> fill in those two exactly. <code>KW307_OUTPUT_NORMAL_WITH_SPD_RG</code>, with gates 0~7 instead of 0~3:</p>
+
+<pre><code>KW307OutputConfig_t c;
+
+kw307_out_normal_with_spd_rg(&amp;c);                  /* SPD_RG shape ...     */
+kw307_out_rg(&amp;c, 0, 7, false, true, false);        /* ... gates 0~7        */
+
+kw307_on_frame_f3(on_f3);                          /* every shape lands here */
+kw307_set_output_config(&amp;c);</code></pre>
+
+<pre><code>static void on_f3(const KW307FrameF3_t* f)
+{
+    int g;
+    if (f-&gt;blocks &amp; KW307_F3_PRESENCE) { /* f-&gt;presence_flag is in this frame */ }
+    for (g = f-&gt;start_rg; g &lt;= f-&gt;end_rg; g++)
+        printf("gate %d: mag %u\n", g, f-&gt;rg[g][KW307_BAND_STATIONARY].mag);
+}</code></pre>
+
+<ul>
+<li><strong>Every block is in the struct whether it was sent or not.</strong> What the frame</li>
+</ul>
+
+<p>did not carry is zero; <code>blocks</code> says which is which. Test the bit, not the value.</p>
+
+<ul>
+<li><strong><code>rg[]</code> is indexed by the gate number</strong>, so <code>rg[5]</code> is gate 5 whatever range</li>
+</ul>
+
+<p>you chose.</p>
+
+<ul>
+<li><strong><code>kw307_out_len(&amp;c)</code> tells you the frame size before you send it</strong> — 6 to</li>
+</ul>
+
+<p>270 bytes. At 20 frames a second the largest wants 115200 baud, and fills the default 256-byte receive buffer in about 45 ms: call <code>kw307_update()</code> more often than that, or enlarge <code>KW307_UART_RX_BUFSIZE</code>.</p>
+
+<ul>
+<li><strong>The module forgets the shape at power-off</strong> and comes back on the default</li>
+</ul>
+
+<p>frame. Send it again after a reset.</p>
+
+<p><code>kw307_on_frame_f3()</code> sits alongside the two callbacks above rather than replacing them: a frame of either mode's exact shape still goes to <code>kw307_on_frame_spd()</code> / <code>kw307_on_frame_spd_rg()</code> if those are registered, and every other shape comes to <code>kw307_on_frame_f3()</code>. Writing your own transport? <code>kw307_dec_frame_f3()</code> decodes any shape from the payload bytes.</p>
+
+<p>For tuning a board there is a ready-made shape: <code>kw307_set_output_rg(start_rg, end_rg, en_moving_trk, en_stationary_trk)</code> sends both bands' gates in full, with the moving and/or stationary trackers alongside so you can see what each gate saw and what the trackers made of it.</p>
+
+<h2 id="error-handling"><span class="n">3</span>Error handling</h2>
+
+<p>Every call that sends to or reads from the module returns <code>int</code>. <code>KW307_OK</code> is zero and every failure is negative, so the ordinary test is one line:</p>
+
+<pre><code>if (kw307_set_detect_range(30, 400) != KW307_OK) { /* handle it */ }</code></pre>
+
+<p>That catches everything. Tell the four apart only where your response differs; the constants are in <code>KW307_io.h</code>.</p>
+
+<div class="scroll">
+<table>
+<tr><th></th><th>What to do</th></tr>
+<tr><td><strong>The link</strong> — the UART is not there (<code>KW307_ERR_PORT_CLOSED</code> and the other <code>KW307_ERR_PORT_*</code> codes). <code>kw307_is_open()</code> says so without sending anything.</td><td>Stop configuring. <code>kw307_init()</code> is what brings it back.</td></tr>
+<tr><td><strong>The argument</strong> — a value outside the range the call accepts (<code>KW307_ERR_PARAM</code>).</td><td>Check the value against the call's range. Nothing was sent to the module.</td></tr>
+<tr><td><strong>The answer</strong> — nothing came back (<code>KW307_ERR_TIMEOUT</code>), or the module rejected the value (<code>KW307_ERR_NACK</code>).</td><td>After a timeout, a retry is reasonable, except for <code>kw307_save_settings()</code>, <code>kw307_factory_reset()</code> and <code>kw307_clear_state()</code>: it is not known whether the module acted. After a rejection, correct the value first; <code>kw307_last_nack_status()</code> holds the reason until the next rejection.</td></tr>
+<tr><td><strong>The firmware</strong> — the module runs firmware 2.7.6, which does not have this call (<code>KW307_ERR_NOT_SUPPORTED</code>).</td><td>Not a fault; do not retry. Leave the feature out on that module.</td></tr>
+</table>
+</div>
+
+<p class="note"><strong>A timeout is not always the module.</strong> A blocking call waits about 200 ms (<code>KW307_READ_TIMEOUT_MS</code>) for a reply that only arrives if something is draining the port. A stalled loop, a disabled interrupt, a buffer never emptied — any of them time out every read while the module is sending perfectly well.</p>
+
+<p class="note"><strong>A rejection is the module disagreeing with the value, not the link failing.</strong> <code>kw307_last_nack_status()</code> gives the reason.</p>
+
+<h3 id="write-verify"><span class="n">3.1</span>Write verify</h3>
+
+<p>A setter returns as soon as the command is on the wire, so <code>KW307_OK</code> means <em>sent</em>, not <em>applied</em>. To make every write wait for the module's ACK, call <code>kw307_set_write_verify()</code> once at start-up. A rejected value is then returned as <code>KW307_ERR_NACK</code>; a timeout is not returned, but is counted and passed to the callback you give it. <code>kw307_write_stats_get()</code> counts the writes that were verified, rejected, timed out or sent unverified since the last <code>kw307_write_stats_reset()</code>, which tells an unreliable link apart from a rejected setting. Write verify is intended for configuration tools and production fixtures; leave it off in a product's main loop.</p>
+
+<h2 id="signal-path"><span class="n">4</span>Signal path</h2>
+
+<p>In the KW307 radar system, motion objects are categorised into two types:</p>
+
+<ul>
+<li><strong>Moving objects</strong> — macro-movements such as walking or running.</li>
+<li><strong>Stationary objects with micro-Doppler</strong> — micro-movements such as breathing, heartbeat, or subtle body shifts.</li>
+</ul>
+
+<p>The radar hardware processes incoming signals through two parallel bands: the <strong>moving band</strong> and the <strong>stationary band</strong>. Both bands share a similar architecture and the same configurable parameters.</p>
+
+<figure>
+<div class="figbox">
+<!-- Generated by doc/build_flow_svg.py from doc/KW307_algorithm_flow1.svg - do not edit. -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 1260 842"><defs/><g><g data-cell-id="0"><g data-cell-id="1"><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-2"><g transform="translate(0.5,0.5)"><path d="M 136 480 L 160 480" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-3"><g transform="translate(0.5,0.5)"><path d="M 160 480 L 160 335 L 177.03 335" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/><path d="M 184.43 335 L 177.03 338.7 L 177.03 331.3 Z" fill="var(--wire)" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="all" style="fill: var(--wire); stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-4"><g transform="translate(0.5,0.5)"><path d="M 160 480 L 160 605 L 177.03 605" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/><path d="M 184.43 605 L 177.03 608.7 L 177.03 601.3 Z" fill="var(--wire)" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="all" style="fill: var(--wire); stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-5"><g transform="translate(0.5,0.5)"><rect x="188" y="313" width="58" height="44" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-6"><g><path d="M 198.44 327.08 L 208.3 327.08 Q 218.16 327.08 224.92 334.45 L 236.72 347.32" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-7"><g><rect x="170" y="363" width="118" height="20" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 116px; height: 1px; padding-top: 373px; margin-left: 171px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Smooth average filter</div></div></div></foreignObject><text x="229" y="377" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">Smooth average filter</text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-8"><g transform="translate(0.5,0.5)"><path d="M 246 335 L 299.03 335" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/><path d="M 306.43 335 L 299.03 338.7 L 299.03 331.3 Z" fill="var(--wire)" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="all" style="fill: var(--wire); stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-9"><g><rect x="298" y="275" width="200" height="18" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 198px; height: 1px; padding-top: 284px; margin-left: 299px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Doppler High pass filter</div></div></div></foreignObject><text x="398" y="288" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">Doppler High pass filter</text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-10"><g><rect x="299" y="293" width="200" height="18" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 198px; height: 1px; padding-top: 302px; margin-left: 300px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">(Static environment rejection)</div></div></div></foreignObject><text x="399" y="306" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">(Static environment rejection)</text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-11"><g><rect x="310" y="311" width="150" height="118" fill="var(--sw)" stroke="none" pointer-events="all" style="fill: var(--sw);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-12"><g transform="translate(0.5,0.5)"><path d="M 310 335 L 421 335" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-17"><g transform="translate(0.5,0.5)"><path d="M 447 335 L 491.63 335" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 496.88 335 L 489.88 338.5 L 491.63 335 L 489.88 331.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-13"><g transform="translate(0.5,0.5)"><ellipse cx="434" cy="335" rx="13" ry="13" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 24px; height: 1px; padding-top: 335px; margin-left: 422px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">±</div></div></div></foreignObject><text x="434" y="339" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">±</text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-14"><g transform="translate(0.5,0.5)"><path d="M 332 335 L 332 361" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-15"><g transform="translate(0.5,0.5)"><path d="M 332 383 L 344 362" fill="none" stroke="var(--wire)" stroke-width="2.6" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-16"><g transform="translate(0.5,0.5)"><path d="M 332 385 L 332 403 L 358 403" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-17"><g transform="translate(0.5,0.5)"><rect x="360" y="385" width="46" height="36" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-18"><g><path d="M 368.28 396.52 L 376.1 396.52 Q 383.92 396.52 390.56 403.99 L 398.64 413.08" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-19"><g transform="translate(0.5,0.5)"><path d="M 406 403 L 434 403 L 434 381" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-20"><g transform="translate(0.5,0.5)"><path d="M 434 379 L 446 358" fill="none" stroke="var(--wire)" stroke-width="2.6" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-21"><g transform="translate(0.5,0.5)"><path d="M 434 355 L 434 348" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-22"><g><rect x="230" y="442" width="110" height="32" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 108px; height: 1px; padding-top: 458px; margin-left: 231px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 11px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; font-weight: bold; white-space: normal; word-wrap: normal; ">background switch:<br />Freeze / update</div></div></div></foreignObject><text x="285" y="455" fill="var(--ink)" font-family="Helvetica" font-size="11px" text-anchor="middle" font-weight="bold" style="fill: var(--ink);"><tspan x="285" y="455">background switch:</tspan><tspan x="285" y="468">Freeze / update</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-24"><g><rect x="406" y="435" width="130" height="32" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 128px; height: 1px; padding-top: 451px; margin-left: 407px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 11px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; font-weight: bold; white-space: normal; word-wrap: normal; ">environment<br />subtraction switch</div></div></div></foreignObject><text x="471" y="448" fill="var(--ink)" font-family="Helvetica" font-size="11px" text-anchor="middle" font-weight="bold" style="fill: var(--ink);"><tspan x="471" y="448">environment</tspan><tspan x="471" y="461">subtraction switch</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-25"><g transform="translate(0.5,0.5)"><path d="M 454 437 L 440 437 L 440 393" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-27"><g><rect x="548" y="285" width="100" height="18" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 98px; height: 1px; padding-top: 294px; margin-left: 549px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Doppler low pass</div></div></div></foreignObject><text x="598" y="298" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">Doppler low pass</text></switch></g></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-3"><g transform="translate(0.5,0.5)"><path d="M 718 336 L 738.5 336 L 738.5 335 L 752.63 335" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 757.88 335 L 750.88 338.5 L 752.63 335 L 750.88 331.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-28"><g transform="translate(0.5,0.5)"><rect x="564" y="313" width="58" height="44" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-29"><g><path d="M 574.44 327.08 L 584.3 327.08 Q 594.16 327.08 600.92 334.45 L 612.72 347.32" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-37"><g transform="translate(0.5,0.5)"><rect x="759" y="307" width="124" height="56" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 122px; height: 1px; padding-top: 335px; margin-left: 760px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">(mag, dis, ang, speed) extraction</div></div></div></foreignObject><text x="821" y="332" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);"><tspan x="821" y="332">(mag, dis, ang, speed)</tspan><tspan x="821" y="346">extraction</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-39"><g><rect x="942" y="255" width="210" height="20" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 208px; height: 1px; padding-top: 265px; margin-left: 944px;"><div style="box-sizing: border-box; font-size: 0; text-align: left; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Raw Rg data @moving filter</div></div></div></foreignObject><text x="944" y="269" fill="var(--ink)" font-family="Helvetica" font-size="12px" style="fill: var(--ink);">Raw Rg data @moving filter</text></switch></g></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-11"><g transform="translate(0.5,0.5)"><path d="M 1152 335 L 1187.63 335" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 1192.88 335 L 1185.88 338.5 L 1187.63 335 L 1185.88 331.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-41"><g transform="translate(0.5,0.5)"><rect x="1034" y="307" width="118" height="56" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 116px; height: 1px; padding-top: 335px; margin-left: 1035px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Tracking algorithm (counter)</div></div></div></foreignObject><text x="1093" y="332" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);"><tspan x="1093" y="332">Tracking algorithm</tspan><tspan x="1093" y="346">(counter)</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-43"><g><rect x="1198" y="325" width="46" height="20" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 44px; height: 1px; padding-top: 335px; margin-left: 1200px;"><div style="box-sizing: border-box; font-size: 0; text-align: left; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Final<div>Moving <div>tracker </div><div>data</div></div></div></div></div></foreignObject><text x="1200" y="318" fill="var(--ink)" font-family="Helvetica" font-size="12px" style="fill: var(--ink);"><tspan x="1200" y="318">Final</tspan><tspan x="1200" y="332">Moving</tspan><tspan x="1200" y="346">tracker</tspan><tspan x="1200" y="360">data</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-44"><g transform="translate(0.5,0.5)"><rect x="188" y="583" width="58" height="44" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-45"><g><path d="M 198.44 597.08 L 208.3 597.08 Q 218.16 597.08 224.92 604.45 L 236.72 617.32" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-46"><g><rect x="170" y="633" width="118" height="20" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 116px; height: 1px; padding-top: 643px; margin-left: 171px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Smooth average filter</div></div></div></foreignObject><text x="229" y="647" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">Smooth average filter</text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-47"><g transform="translate(0.5,0.5)"><path d="M 246 605 L 299.03 605" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/><path d="M 306.43 605 L 299.03 608.7 L 299.03 601.3 Z" fill="var(--wire)" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="all" style="fill: var(--wire); stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-48"><g><rect x="298" y="555" width="200" height="18" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 198px; height: 1px; padding-top: 564px; margin-left: 299px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Doppler High pass filter<div>(Static clutter rejection)</div></div></div></div></foreignObject><text x="398" y="561" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);"><tspan x="398" y="561">Doppler High pass filter</tspan><tspan x="398" y="575">(Static clutter rejection)</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-50"><g><rect x="310" y="581" width="150" height="118" fill="var(--sw)" stroke="none" pointer-events="all" style="fill: var(--sw);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-51"><g transform="translate(0.5,0.5)"><path d="M 310 605 L 421 605" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-19"><g transform="translate(0.5,0.5)"><path d="M 447 605 L 472.5 605 L 472.5 604 L 491.63 604" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 496.88 604 L 489.88 607.5 L 491.63 604 L 489.88 600.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-52"><g transform="translate(0.5,0.5)"><ellipse cx="434" cy="605" rx="13" ry="13" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 24px; height: 1px; padding-top: 605px; margin-left: 422px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">±</div></div></div></foreignObject><text x="434" y="609" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">±</text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-53"><g transform="translate(0.5,0.5)"><path d="M 332 605 L 332 631" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-54"><g transform="translate(0.5,0.5)"><path d="M 332 653 L 344 632" fill="none" stroke="var(--wire)" stroke-width="2.6" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-55"><g transform="translate(0.5,0.5)"><path d="M 332 655 L 332 673 L 358 673" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-56"><g transform="translate(0.5,0.5)"><rect x="360" y="655" width="46" height="36" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-57"><g><path d="M 368.28 666.52 L 376.1 666.52 Q 383.92 666.52 390.56 673.99 L 398.64 683.08" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-58"><g transform="translate(0.5,0.5)"><path d="M 406 673 L 434 673 L 434 651" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-59"><g transform="translate(0.5,0.5)"><path d="M 434 649 L 446 628" fill="none" stroke="var(--wire)" stroke-width="2.6" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-60"><g transform="translate(0.5,0.5)"><path d="M 434 625 L 434 618" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-61"><g><rect x="180" y="705" width="150" height="32" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 148px; height: 1px; padding-top: 721px; margin-left: 181px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 11px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; font-weight: bold; white-space: normal; word-wrap: normal; ">background switch:<br />Freeze / update</div></div></div></foreignObject><text x="255" y="718" fill="var(--ink)" font-family="Helvetica" font-size="11px" text-anchor="middle" font-weight="bold" style="fill: var(--ink);"><tspan x="255" y="718">background switch:</tspan><tspan x="255" y="731">Freeze / update</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-63"><g><rect x="406" y="705" width="130" height="32" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 128px; height: 1px; padding-top: 721px; margin-left: 407px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 11px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; font-weight: bold; white-space: normal; word-wrap: normal; ">environment<br />subtraction switch</div></div></div></foreignObject><text x="471" y="718" fill="var(--ink)" font-family="Helvetica" font-size="11px" text-anchor="middle" font-weight="bold" style="fill: var(--ink);"><tspan x="471" y="718">environment</tspan><tspan x="471" y="731">subtraction switch</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-64"><g transform="translate(0.5,0.5)"><path d="M 454 707 L 440 707 L 440 663" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-66"><g><rect x="548" y="555" width="100" height="18" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 98px; height: 1px; padding-top: 564px; margin-left: 549px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Doppler low pass</div></div></div></foreignObject><text x="598" y="568" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">Doppler low pass</text></switch></g></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-4"><g transform="translate(0.5,0.5)"><path d="M 718 604 L 738.5 604 L 738.5 605 L 752.63 605" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 757.88 605 L 750.88 608.5 L 752.63 605 L 750.88 601.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-67"><g transform="translate(0.5,0.5)"><rect x="564" y="583" width="58" height="44" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-68"><g><path d="M 574.44 597.08 L 584.3 597.08 Q 594.16 597.08 600.92 604.45 L 612.72 617.32" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-6"><g transform="translate(0.5,0.5)"><path d="M 883 605 L 922.63 605" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 927.88 605 L 920.88 608.5 L 922.63 605 L 920.88 601.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-76"><g transform="translate(0.5,0.5)"><rect x="759" y="577" width="124" height="56" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 122px; height: 1px; padding-top: 605px; margin-left: 760px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">(mag, dis, ang, speed) extraction</div></div></div></foreignObject><text x="821" y="602" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);"><tspan x="821" y="602">(mag, dis, ang, speed)</tspan><tspan x="821" y="616">extraction</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-78"><g><rect x="942" y="524" width="210" height="20" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 208px; height: 1px; padding-top: 534px; margin-left: 944px;"><div style="box-sizing: border-box; font-size: 0; text-align: left; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Raw Rg data @stationary filter</div></div></div></foreignObject><text x="944" y="538" fill="var(--ink)" font-family="Helvetica" font-size="12px" style="fill: var(--ink);">Raw Rg data @stationary filter</text></switch></g></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-10"><g transform="translate(0.5,0.5)"><path d="M 1152 605 L 1187.63 605" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 1192.88 605 L 1185.88 608.5 L 1187.63 605 L 1185.88 601.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-80"><g transform="translate(0.5,0.5)"><rect x="1034" y="577" width="118" height="56" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 116px; height: 1px; padding-top: 605px; margin-left: 1035px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Tracking algorithm (counter)</div></div></div></foreignObject><text x="1093" y="602" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);"><tspan x="1093" y="602">Tracking algorithm</tspan><tspan x="1093" y="616">(counter)</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-82"><g><rect x="1198" y="595" width="60" height="20" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 58px; height: 1px; padding-top: 605px; margin-left: 1200px;"><div style="box-sizing: border-box; font-size: 0; text-align: left; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Final <div>Stationary</div><div>tracker</div><div>data</div></div></div></div></foreignObject><text x="1200" y="588" fill="var(--ink)" font-family="Helvetica" font-size="12px" style="fill: var(--ink);"><tspan x="1200" y="588">Final</tspan><tspan x="1200" y="602">Stationary</tspan><tspan x="1200" y="616">tracker</tspan><tspan x="1200" y="630">data</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-83"><g><rect x="271" y="749" width="200" height="32" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 198px; height: 1px; padding-top: 765px; margin-left: 272px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">stationary filter<br />(stationary with micro doppler)</div></div></div></foreignObject><text x="371" y="762" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);"><tspan x="371" y="762">stationary filter</tspan><tspan x="371" y="776">(stationary with micro doppler)</tspan></text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-84"><g transform="translate(0.5,0.5)"><rect x="182" y="793" width="150" height="46" rx="11.04" ry="11.04" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 148px; height: 1px; padding-top: 816px; margin-left: 183px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Detect Range and FOV</div></div></div></foreignObject><text x="257" y="820" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">Detect Range and FOV</text></switch></g></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-85"><g transform="translate(0.5,0.5)"><rect x="1018" y="793" width="150" height="46" rx="11.04" ry="11.04" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 148px; height: 1px; padding-top: 816px; margin-left: 1019px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Human Flag</div></div></div></foreignObject><text x="1093" y="820" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">Human Flag</text></switch></g></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-1"><g transform="translate(0.5,0.5)"><path d="M 500 29 L 560 69 L 500 109 Z" fill="var(--box)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-2"><g transform="translate(0.5,0.5)"><path d="M 510 119 L 538.17 25.1" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 539.68 20.07 L 541.02 27.78 L 538.17 25.1 L 534.31 25.77 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-3"><g><rect x="490" y="127" width="80" height="44" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 78px; height: 1px; padding-top: 149px; margin-left: 491px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">variable gain amplifier<div>(Analog)</div></div></div></div></foreignObject><text x="530" y="139" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);"><tspan x="530" y="139">variable gain</tspan><tspan x="530" y="153">amplifier</tspan><tspan x="530" y="167">(Analog)</tspan></text></switch></g></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-8"><g transform="translate(0.5,0.5)"><path d="M 999 335 L 1027.63 335" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 1032.88 335 L 1025.88 338.5 L 1027.63 335 L 1025.88 331.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-8"><g transform="translate(0.5,0.5)"><path d="M 949 307 L 979 307 L 999 335 L 979 363 L 949 363 L 929 335 Z" fill="var(--box)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 68px; height: 1px; padding-top: 335px; margin-left: 930px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; "><div style="float:left;text-decoration:inherit;width:68px;height:52px;"><div data-shape-inside="1" contenteditable="false" style="float:left;width:34px;height:52px;shape-outside:polygon(51.68% 0.05%, 0.05% 50%, 51.68% 99.95%, 0.05% 99.95%, 0.05% 0.05%);shape-margin:2px;pointer-events:none;"></div><div data-shape-inside="1" contenteditable="false" style="float:right;width:34px;height:52px;shape-outside:polygon(48.32% 0.05%, 99.95% 50%, 48.32% 99.95%, 99.95% 99.95%, 99.95% 0.05%);shape-margin:2px;pointer-events:none;"></div>Spd,Mag &gt; TH<div><br /></div></div></div></div></div></foreignObject><text x="964" y="318" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);"><tspan x="964" y="318"></tspan><tspan x="964" y="332">Spd,Mag &gt;</tspan><tspan x="964" y="346">TH</tspan><tspan x="964" y="360"></tspan></text></switch></g></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-9"><g transform="translate(0.5,0.5)"><path d="M 999 605 L 1027.63 605" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 1032.88 605 L 1025.88 608.5 L 1027.63 605 L 1025.88 601.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-9"><g transform="translate(0.5,0.5)"><path d="M 949 577 L 979 577 L 999 605 L 979 633 L 949 633 L 929 605 Z" fill="var(--box)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 68px; height: 1px; padding-top: 605px; margin-left: 930px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; "><div style="float:left;text-decoration:inherit;width:68px;height:52px;"><div data-shape-inside="1" contenteditable="false" style="float:left;width:34px;height:52px;shape-outside:polygon(51.68% 0.05%, 0.05% 50%, 51.68% 99.95%, 0.05% 99.95%, 0.05% 0.05%);shape-margin:2px;pointer-events:none;"></div><div data-shape-inside="1" contenteditable="false" style="float:right;width:34px;height:52px;shape-outside:polygon(48.32% 0.05%, 99.95% 50%, 48.32% 99.95%, 99.95% 99.95%, 99.95% 0.05%);shape-margin:2px;pointer-events:none;"></div><div data-shape-inside="1" contenteditable="false" style="height:12px;pointer-events:none;"></div>Mag &gt; TH<div><br /></div></div></div></div></div></foreignObject><text x="964" y="588" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);"><tspan x="964" y="588"></tspan><tspan x="964" y="602"></tspan><tspan x="964" y="616">Mag &gt; TH</tspan><tspan x="964" y="630"></tspan></text></switch></g></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-15"><g transform="translate(0.5,0.5)"><rect x="20" y="449" width="120" height="60" rx="9" ry="9" fill="var(--box)" stroke="var(--ink)" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="_SN_IpqX7I-TBZpsaUEV-1"><g><rect x="30" y="452" width="120" height="54" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe flex-start; width: 118px; height: 1px; padding-top: 479px; margin-left: 32px;"><div style="box-sizing: border-box; font-size: 0; text-align: left; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Radar process complex data @ range gate (Rg)</div></div></div></foreignObject><text x="32" y="469" fill="var(--ink)" font-family="Helvetica" font-size="12px" style="fill: var(--ink);"><tspan x="32" y="469">Radar process</tspan><tspan x="32" y="483">complex data @</tspan><tspan x="32" y="497">range gate (Rg)</tspan></text></switch></g></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-19"><g transform="translate(0.5,0.5)"><path d="M 20 479 L 0 479 L 0 230 L 820 230 L 820 69 L 560 69" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-20"><g transform="translate(0.5,0.5)"><rect x="403" y="39" width="58" height="60" fill="var(--box)" stroke="var(--ink)" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-24"><g transform="translate(0.5,0.5)"><path d="M 421.64 93.35 L 441 54" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-27"><g transform="translate(0.5,0.5)"><path d="M 441 54 L 451 54" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-29"><g transform="translate(0.5,0.5)"><path d="M 463 70 L 490.03 70" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/><path d="M 497.43 70 L 490.03 73.7 L 490.03 66.3 Z" fill="var(--wire)" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="all" style="fill: var(--wire); stroke: var(--wire);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-31"><g><rect x="393" y="97" width="80" height="44" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 78px; height: 1px; padding-top: 119px; margin-left: 394px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; "><div><span style="background-color: transparent; color: var(--ink);">Equalizer</span></div></div></div></div></foreignObject><text x="433" y="123" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">Equalizer</text></switch></g></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-35"><g transform="translate(0.5,0.5)"><path d="M 275 30 L 295 0" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-36"><g transform="translate(0.5,0.5)"><path d="M 275 30 L 255 0" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-37"><g transform="translate(0.5,0.5)"><path d="M 255 0 L 295 0" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-39"><g transform="translate(0.5,0.5)"><path d="M 275 70 L 275 0" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-41"><g transform="translate(0.5,0.5)"><rect x="305" y="29" width="70" height="166" rx="10.5" ry="10.5" fill="var(--box)" stroke="var(--ink)" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 68px; height: 1px; padding-top: 112px; margin-left: 306px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">TRX<div>Front</div><div>End</div></div></div></div></foreignObject><text x="340" y="102" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);"><tspan x="340" y="102">TRX</tspan><tspan x="340" y="116">Front</tspan><tspan x="340" y="130">End</tspan></text></switch></g></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-42"><g transform="translate(0.5,0.5)"><path d="M 274 129 L 294 99" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-43"><g transform="translate(0.5,0.5)"><path d="M 274 129 L 254 99" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-44"><g transform="translate(0.5,0.5)"><path d="M 254 99 L 294 99" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-45"><g transform="translate(0.5,0.5)"><path d="M 274 169 L 274 99" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-48"><g transform="translate(0.5,0.5)"><path d="M 275 70 L 290.5 70 L 296.04 69.95" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/><path d="M 303.43 69.88 L 296.07 73.65 L 296 66.25 Z" fill="var(--wire)" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="all" style="fill: var(--wire); stroke: var(--wire);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-49"><g transform="translate(0.5,0.5)"><path d="M 304 169 L 282.97 169" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/><path d="M 275.57 169 L 282.97 165.3 L 282.97 172.7 Z" fill="var(--wire)" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="all" style="fill: var(--wire); stroke: var(--wire);"/></g></g><g data-cell-id="26FBEw5vOTrGumc6wZRs-50"><g transform="translate(0.5,0.5)"><path d="M 374.65 68.67 L 389 68.7 L 394.04 68.75" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/><path d="M 401.43 68.82 L 394 72.45 L 394.07 65.05 Z" fill="var(--wire)" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="all" style="fill: var(--wire); stroke: var(--wire);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-1"><g transform="translate(0.5,0.5)"><path d="M 314 437 L 325 437 L 325 415.5 L 324 415.5 L 324 393" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-2"><g transform="translate(0.5,0.5)"><path d="M 315 704.97 L 326 705 L 326 683.5 L 325 683.5 L 325 660.97" fill="none" stroke="var(--wire)" stroke-width="1.4" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--wire);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-5"><g transform="translate(0.5,0.5)"><path d="M 883 335 L 906 335 L 919.35 335.46" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 924.59 335.63 L 917.48 338.89 L 919.35 335.46 L 917.72 331.9 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-13"><g transform="translate(0.5,0.5)"><path d="M 884 320 Q 934 320 909 295 Q 884 270 927.63 270" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 932.88 270 L 925.88 273.5 L 927.63 270 L 925.88 266.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-14"><g transform="translate(0.5,0.5)"><path d="M 883 589 Q 933 589 908 564 Q 883 539 926.63 539" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 931.88 539 L 924.88 542.5 L 926.63 539 L 924.88 535.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-16"><g transform="translate(0.5,0.5)"><path d="M 532 335 L 552 335 L 540 335 L 553.63 335" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 558.88 335 L 551.88 338.5 L 553.63 335 L 551.88 331.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-15"><g transform="translate(0.5,0.5)"><path d="M 498 312 L 532 335 L 498 358 Z" fill="var(--box)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-20"><g transform="translate(0.5,0.5)"><path d="M 532 604 L 552 604 L 540 604 L 553.63 604" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 558.88 604 L 551.88 607.5 L 553.63 604 L 551.88 600.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-18"><g transform="translate(0.5,0.5)"><path d="M 498 581 L 532 604 L 498 627 Z" fill="var(--box)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-21"><g><rect x="460" y="361" width="100" height="18" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 98px; height: 1px; padding-top: 370px; margin-left: 461px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Digital Gain</div></div></div></foreignObject><text x="510" y="374" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">Digital Gain</text></switch></g></g></g><g data-cell-id="bu7nbKuoWIMMNBaSpXTA-22"><g><rect x="460" y="630" width="100" height="18" fill="none" stroke="none" pointer-events="all"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 98px; height: 1px; padding-top: 639px; margin-left: 461px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">Digital Gain</div></div></div></foreignObject><text x="510" y="643" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">Digital Gain</text></switch></g></g></g><g data-cell-id="yf7f43EB9f5o4khEsYMa-2"><g transform="translate(0.5,0.5)"><path d="M 622 335 L 642 335 L 642 336 L 653.63 336" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 658.88 336 L 651.88 339.5 L 653.63 336 L 651.88 332.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="yf7f43EB9f5o4khEsYMa-1"><g transform="translate(0.5,0.5)"><rect x="660" y="314" width="58" height="44" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 56px; height: 1px; padding-top: 336px; margin-left: 661px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">IIR Filter</div></div></div></foreignObject><text x="689" y="340" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">IIR Filter</text></switch></g></g></g><g data-cell-id="yf7f43EB9f5o4khEsYMa-4"><g transform="translate(0.5,0.5)"><path d="M 622 605 L 642 605 L 642 604 L 653.63 604" fill="none" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="stroke" style="stroke: var(--ink);"/><path d="M 658.88 604 L 651.88 607.5 L 653.63 604 L 651.88 600.5 Z" fill="var(--ink)" stroke="var(--ink)" stroke-miterlimit="10" pointer-events="all" style="fill: var(--ink); stroke: var(--ink);"/></g></g><g data-cell-id="yf7f43EB9f5o4khEsYMa-3"><g transform="translate(0.5,0.5)"><rect x="660" y="582" width="58" height="44" fill="var(--box)" stroke="var(--ink)" stroke-width="1.4" pointer-events="all" style="fill: var(--box); stroke: var(--ink);"/></g><g><g><switch><foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"><div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 56px; height: 1px; padding-top: 604px; margin-left: 661px;"><div style="box-sizing: border-box; font-size: 0; text-align: center; color: var(--ink); "><div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: var(--ink); line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">IIR Filter</div></div></div></foreignObject><text x="689" y="608" fill="var(--ink)" font-family="Helvetica" font-size="12px" text-anchor="middle" style="fill: var(--ink);">IIR Filter</text></switch></g></g></g></g></g></g></svg>
+</div>
+<figcaption>The moving band takes 20 to 160 Hz, the stationary band 0.31 to 10 Hz.</figcaption>
+</figure>
+
+<p>Every value the module reports comes out of those two paths, and every setting in this guide changes one block in one of them. Left to right:</p>
+
+<div class="scroll">
+<table>
+<tr><th>The block</th><th>What it does</th><th>Yours to change</th></tr>
+<tr><td><strong>Analog front end</strong></td><td>Transmit and receive, the equalizer that compensates the signal's loss over range, and the baseband gain applied to the signal before it is digitised.</td><td>The baseband gain, and the equalizer order.</td></tr>
+<tr><td><strong>Complex data per range gate</strong></td><td>The radar's own output: one in-phase / quadrature pair per range gate.</td><td>Which gates are in play, via the detection zone.</td></tr>
+<tr><td><strong>Smooth average</strong></td><td>A short average over frames that takes the noise off each gate's signal before the Doppler filters see it.</td><td>Nothing. It is fixed, and it is the reason a single noisy frame does not become a target.</td></tr>
+<tr><td><strong>Doppler high-pass</strong></td><td>Removes the stationary clutter — floors, walls, furniture, the antenna's own cross-talk. Two switches inside it decide <em>how</em> it is removed.</td><td>The corner, and the two switches.</td></tr>
+<tr><td><strong>Digital gain</strong></td><td>A gain step after the clutter is removed, one setting for both bands. The baseband gain has to carry clutter and target together; this one carries only the residual signal, so it lifts a weak target without saturating the front end.</td><td>The step, 1x to 8x.</td></tr>
+<tr><td><strong>Doppler low-pass</strong></td><td>Removes Doppler faster than the band covers, which is what separates the two bands.</td><td>The corner.</td></tr>
+<tr><td><strong>Range-gate IIR</strong></td><td>An IIR filter that averages each gate's complex data over frames, one coefficient per band.</td><td>The coefficient, 0~1000.</td></tr>
+<tr><td><strong>Extraction</strong></td><td>Turns each gate's filtered signal into a magnitude, a distance, an angle and a speed.</td><td>Nothing.</td></tr>
+<tr><td><strong>Detection threshold</strong></td><td>Decides which gates become candidates for the tracker — fast enough for the band, and strong enough. It only decides which gates can form a target; the reported values are unchanged.</td><td>The threshold, per band.</td></tr>
+<tr><td><strong>Tracking</strong></td><td>Decides which candidates are the same target across frames, and when a target is confirmed enough to report.</td><td>The counters.</td></tr>
+</table>
+</div>
+
+<p>The <strong>detection zone</strong> and the <strong>presence flag</strong> sit beside the two bands rather than inside them: they apply to every target rather than to one point in the pipeline. The detection zone says which gates and which angles count at all; the presence flag is the presence answer on its own.</p>
+
+<h3 id="static-clutter-rejection-and-doppler-filters"><span class="n">4.1</span>Static clutter rejection and Doppler filters</h3>
+
+<p>In radar signal processing, rejecting static clutter — floors, walls, stationary furniture and antenna TX-to-RX cross-talk — is essential to isolate target motion. Static environmental clutter appears at DC (0 Hz).</p>
+
+<ul>
+<li>Micro-Doppler signals, such as human respiration, typically start around <strong>0.3 Hz</strong>.</li>
+<li>Macro-movements, such as walking, start around <strong>20 Hz</strong>.</li>
+</ul>
+
+<p>The static clutter rejection circuit is equivalent to a Doppler high-pass filter. Setting a lower high-pass corner frequency enables detection of micro-Doppler targets, but increases susceptibility to environmental vibration clutter.</p>
+
+<p>A Doppler low-pass filter filters out fast movement. If you do not want to detect fast movement, setting the low-pass corner lower keeps only slower-moving objects and lowers the environment noise.</p>
+
+<h4>Sensitivity levels</h4>
+
+<p>One call per band selects that band's Doppler corners for you.</p>
+
+<pre><code>kw307_set_motion_sensitivity(level);       /* 0~9, or -1 for any motion */
+kw307_set_stationary_sensitivity(level);   /* 0~9, stationary band      */</code></pre>
+
+<p>Ten levels per band, from <code>0</code> (most sensitive) to <code>9</code> (least sensitive); the moving band also accepts <code>-1</code>. Each level is a row of settings picked together as a set: where the band's filters sit, and how little movement still counts.</p>
+
+<div class="scroll">
+<table class="levels">
+<tr><th>Level</th><th>High-pass</th><th>Min speed</th><th>Confirm frames</th><th>Speed clip</th><th>Min speed sum</th></tr>
+<tr><td><strong>-1</strong></td><td>0.16 Hz <em>(corner 7, nd 3)</em></td><td>1</td><td>4</td><td>2</td><td>0 <em>(off)</em></td></tr>
+<tr><td><strong>0</strong></td><td>10 Hz <em>(corner 4)</em></td><td>250</td><td>4</td><td>500</td><td>1000</td></tr>
+<tr><td><strong>1</strong></td><td>20 Hz <em>(corner 3)</em></td><td>250</td><td>4</td><td>500</td><td>1000</td></tr>
+<tr><td><strong>2</strong></td><td>20 Hz <em>(corner 3)</em></td><td>250</td><td>8</td><td>500</td><td>2000</td></tr>
+<tr><td><strong>3</strong></td><td>20 Hz <em>(corner 3)</em></td><td>500</td><td>4</td><td>1000</td><td>2000</td></tr>
+<tr><td><strong>4</strong></td><td>40 Hz <em>(corner 2)</em></td><td>500</td><td>4</td><td>1000</td><td>2000</td></tr>
+<tr><td><strong>5</strong></td><td>40 Hz <em>(corner 2)</em></td><td>500</td><td>8</td><td>1000</td><td>4000</td></tr>
+<tr><td><strong>6</strong></td><td>40 Hz <em>(corner 2)</em></td><td>1000</td><td>4</td><td>2000</td><td>4000</td></tr>
+<tr><td><strong>7</strong></td><td>80 Hz <em>(corner 1)</em></td><td>500</td><td>8</td><td>1000</td><td>4000</td></tr>
+<tr><td><strong>8</strong></td><td>80 Hz <em>(corner 1)</em></td><td>1000</td><td>4</td><td>2000</td><td>4000</td></tr>
+<tr><td><strong>9</strong></td><td>80 Hz <em>(corner 1)</em></td><td>1000</td><td>8</td><td>2000</td><td>8000</td></tr>
+</table>
+</div>
+<p class="cap">Moving band. <code>-1</code> is one step below 0: the lowest corner the filter has, the lowest speed that counts as movement, and the added-up speed check (<code>min_speed_sum</code>) off entirely.</p>
+
+<div class="scroll">
+<table class="levels">
+<tr><th>Level</th><th>High-pass</th><th>Low-pass</th><th>Receiver gain</th></tr>
+<tr><td><strong>0</strong></td><td>0.16 Hz <em>(corner 7, nd 3)</em></td><td>10 Hz <em>(corner 8)</em></td><td>0 dB</td></tr>
+<tr><td><strong>1</strong></td><td>0.31 Hz <em>(corner 7, nd 2)</em></td><td>10 Hz <em>(corner 8)</em></td><td>0 dB</td></tr>
+<tr><td><strong>2</strong></td><td>0.62 Hz <em>(corner 7, nd 1)</em></td><td>10 Hz <em>(corner 8)</em></td><td>0 dB</td></tr>
+<tr><td><strong>3</strong></td><td>1.2 Hz <em>(corner 7, nd 0)</em></td><td>10 Hz <em>(corner 8)</em></td><td>0 dB</td></tr>
+<tr><td><strong>4</strong></td><td>2.5 Hz <em>(corner 6, nd 0)</em></td><td>10 Hz <em>(corner 8)</em></td><td>0 dB</td></tr>
+<tr><td><strong>5</strong></td><td>5 Hz <em>(corner 5, nd 0)</em></td><td>10 Hz <em>(corner 8)</em></td><td>0 dB</td></tr>
+<tr><td><strong>6</strong></td><td>10 Hz <em>(corner 4, nd 0)</em></td><td>20 Hz <em>(corner 16)</em></td><td>0 dB</td></tr>
+<tr><td><strong>7</strong></td><td>10 Hz <em>(corner 4, nd 0)</em></td><td>20 Hz <em>(corner 16)</em></td><td>-6 dB</td></tr>
+<tr><td><strong>8</strong></td><td>20 Hz <em>(corner 3, nd 0)</em></td><td>40 Hz <em>(corner 32)</em></td><td>-6 dB</td></tr>
+<tr><td><strong>9</strong></td><td>40 Hz <em>(corner 2, nd 0)</em></td><td>80 Hz <em>(corner 64)</em></td><td>-6 dB</td></tr>
+</table>
+</div>
+<p class="cap">Stationary band. A stationary level sets <strong>both</strong> corners — the high-pass and the low-pass — and 7~9 additionally take 6 dB out at the receiver. A level never changes the thresholds set by <code>kw307_set_mag_threshold()</code>. Levels 6 and 7 are the same filter and differ only in that 6 dB.</p>
+
+<p class="warn"><strong>The receiver's gain is ahead of the band split.</strong> Levels 7~9 quieten the moving band by the same 6 dB, not the stationary band alone. If that matters, stay at 6 or below and raise the stationary threshold yourself with <code>kw307_set_mag_threshold()</code>.</p>
+
+<div class="note">
+<p><strong>Coming from SDK 2.5 or earlier.</strong> Motion sensitivity took <code>(level, byp_spd)</code>, and <code>level</code> was ignored whenever <code>byp_spd</code> was set. <code>byp_spd = 1</code> is now <code>level = -1</code>; every other level is unchanged. Both sensitivity calls take <code>int8_t</code> so <code>KW307_LEVEL_NONE</code> (the value a getter reports when the band matches no level) fits, and <code>kw307_get_motion_sensitivity()</code> no longer takes a <code>byp_spd</code> pointer.</p>
+<p><strong>Coming from SDK 2.9.0 or earlier.</strong> Stationary levels 7~9 used to double both detection thresholds (350 / 100 to 700 / 200). To keep those thresholds, call <code>kw307_set_mag_threshold(700, 200)</code>.</p>
+</div>
+
+<h4>Direct corner frequency settings</h4>
+
+<p>The same four filters a level sets. Use these when no level lands where you want it.</p>
+
+<pre><code>kw307_set_moving_hpf_corner(corner, nd);       /* moving     high-pass, corner 0~7, nd 0~3 */
+kw307_set_moving_lpf_corner(corner);           /* moving     low-pass, 0~255              */
+kw307_set_stationary_hpf_corner(corner, nd);   /* stationary high-pass                     */
+kw307_set_stationary_lpf_corner(corner);       /* stationary low-pass                      */</code></pre>
+
+<p>At the default 2 kHz sampling rate:</p>
+
+<pre><code>high-pass   2000 / 2^corner / 2^(nd + 1) / 2π   Hz
+low-pass    2000 * corner / 256 / 2π            Hz</code></pre>
+
+<p>The high-pass halves with every step of <code>corner</code>; the low-pass is linear in it.</p>
+
+<p class="note"><strong>The high-pass depends on <code>corner + nd</code> and on nothing else.</strong> So <code>4/2</code> and <code>6/0</code> are the same 2.5 Hz. <code>nd</code> is the downsample factor, 0~3. Eight corners and four <code>nd</code> give eleven distinct corner frequencies, each half the one above it. Reach for <code>nd</code> only once <code>corner</code> is at 7 and the corner still has to come down.</p>
+
+<div class="scroll">
+<table class="freq">
+<tr><th>corner + nd</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th></tr>
+<tr><td>high-pass, Hz</td><td>160</td><td>80</td><td>40</td><td>20</td><td>10</td><td>5</td><td>2.5</td><td>1.2</td><td>0.62</td><td>0.31</td><td>0.16</td></tr>
+</table>
+</div>
+
+<p>Defaults, and the two bands as one picture:</p>
+
+<div class="scroll">
+<table>
+<tr><th></th><th>High-pass</th><th>Low-pass</th><th>What is left</th></tr>
+<tr><td>Moving</td><td>20 Hz, <code>3 / 0</code></td><td>160 Hz, <code>128</code></td><td>walking, gesturing, a hand arriving</td></tr>
+<tr><td>Stationary</td><td>0.31 Hz, <code>7 / 2</code></td><td>10 Hz, <code>8</code></td><td>breathing, a small shift in a chair</td></tr>
+</table>
+</div>
+
+<p>That is motion level 2 and stationary level 1. The moving band starts where macro movement starts, so between 10 and 20 Hz both bands are rolling off. To make the two bands meet, use motion level 0, which sets the moving high-pass corner to 10 Hz.</p>
+
+<p class="note">Setting a corner directly takes the band off every level, so <code>kw307_get_motion_sensitivity()</code> will report <code>KW307_LEVEL_NONE</code> afterwards unless the values happen to land on one. This is expected, not an error.</p>
+
+<p class="warn">The low-pass also sets the band's anti-alias limit before decimation. Raising it well past the band's own range adds no detections. It lets faster movement fold back into the range the band does report, which reads as targets that are not there. We recommend keeping the default low-pass corners, which are the tested settings.</p>
+
+<h3 id="background-update-control"><span class="n">4.2</span>Background update control</h3>
+
+<p>An Update / Freeze background switch controls background adaptation in the static clutter rejection.</p>
+
+<ul>
+<li><strong>Update</strong> (the default) — operates as a standard Doppler high-pass, continuously updating the static clutter estimate.</li>
+<li><strong>Freeze</strong> — freezes background adaptation. This effectively extends the high-pass corner frequency down to DC (0 Hz), so a newly added stationary object is detected against the memorised background.</li>
+</ul>
+
+<pre><code>kw307_set_moving_background(update);            /* true = keep adapting */
+kw307_set_stationary_background(update);</code></pre>
+
+<h4>Environment subtraction switch</h4>
+
+<p>The high-pass is the signal minus a low-pass of itself. The switch above acts on that low-pass, the background estimate; this one acts on the subtraction.</p>
+
+<ul>
+<li><strong>On</strong> (the default) — the estimate is subtracted, and the output is high-passed.</li>
+<li><strong>Off</strong> — the signal passes with the environment still in it, which is the path for measuring the environment.</li>
+</ul>
+
+<pre><code>kw307_en_moving_env_subtraction(on);
+kw307_en_stationary_env_subtraction(on);</code></pre>
+
+<h4>Stationary result hold</h4>
+
+<pre><code>kw307_en_stationary_hold(on);     /* true = hold the stationary result */</code></pre>
+
+<p>This holds the stationary tracker result, so a change of filter state does not reach what you read. Every stationary slot keeps the distance, angle, magnitude and state it had when the hold went on. The moving band is not held.</p>
+
+<p>Use the hold while you change the environment subtraction switch. Changing that switch moves the output path: the signal steps, and the estimate behind it needs seconds to settle. The module cannot tell that swing from a real target arriving or leaving, and the hold keeps it out of the stationary result. The background switch does not need the hold — it changes what the filter learns, not where the signal goes.</p>
+
+<p class="warn"><strong>Turn the hold off when you have finished.</strong> The hold has no timeout. While it is on, the stationary output is frozen, so if the host turns it on and then stops communicating, the module keeps reporting the room as it was when the hold started.</p>
+
+<h4>Analog high-pass (DC cancellation)</h4>
+
+<p>The receiver also cancels DC with an analog high-pass filter, before the signal is split into the two bands, so these switches act on both bands. There are two switches, both on at power-up:</p>
+
+<pre><code>kw307_en_analog_hpf(on);          /* the analog high-pass        */
+kw307_en_analog_hpf_swcap(on);    /* its switched-capacitor path */</code></pre>
+
+<p>Turning the analog high-pass off extends its corner down to DC. The switched-capacitor path is the same high-pass at a lower corner, so a target that never moves needs <strong>both</strong> off; either one left on removes it. Expect a noisier signal once they are off: the offset that was being removed is now in the signal.</p>
+
+<h3 id="distance-angle-and-speed-extraction"><span class="n">4.3</span>Distance, angle and speed extraction</h3>
+
+<p>This block turns each range gate's complex (I/Q) data into a magnitude, a distance, an angle and a speed.</p>
+
+<p>Ahead of it, the range-gate IIR, one per band, averages each gate's complex data over frames:</p>
+
+<pre><code>kw307_set_RangeGate_IIR(moving, stationary);     /* 0~1000, default 150 (0.15) both */</code></pre>
+
+<p>The value is the weight given to each new measurement, in thousandths:</p>
+
+<pre><code>output  =  k/1000 x new measurement  +  (1 - k/1000) x previous output</code></pre>
+
+<p>So the default 150 counts a new reading as 0.15 and what it already had as 0.85. Higher follows the measurement more closely, lower holds the previous value harder, and 1000 is no averaging at all.</p>
+
+<p>One coefficient covers all four quantities: magnitude, distance, angle and speed. The tracker has its own smoothing, in <strong>Tracking algorithm</strong> below.</p>
+
+<h3 id="detection-threshold"><span class="n">4.4</span>Detection threshold</h3>
+
+<p>Between the readings and the tracker there is one more decision: which range gates become candidates. A gate has to be moving at the right speed for its band <strong>and</strong> be strong enough, or it takes no part in forming a target.</p>
+
+<pre><code>kw307_set_mag_threshold(moving, stationary);   /* the threshold, per band. Default 350 / 100 */</code></pre>
+
+<p>It is a minimum, not a target. The default suits most rooms. Raise it only when the room is noisier than the default allows for, and measure the room first with the noise floor report below.</p>
+
+<h4>Noise floor report</h4>
+
+<pre><code>kw307_en_noise_floor_report(on);     /* off by default */</code></pre>
+
+<p>With it on, an <strong>empty</strong> target slot reports the room's peak magnitude in its <code>mag</code> instead of zero — the peak an empty room gives back, which is what a real target has to exceed.</p>
+
+<ul>
+<li>It reports only while <strong>nobody is detected</strong>. The moment the presence flag goes to 1 the slot reads 0 again: with a person in the room the peak magnitude <em>is</em> the person. It gates on <strong>people</strong>, not on objects, so anything else left in the room is part of the reading.</li>
+<li>Only the <strong>first moving slot</strong> and the <strong>nearest stationary slot</strong> carry it. The measurement is per band, not per slot, so the rest stay 0.</li>
+<li>It is the room's <strong>peak</strong>, not its average.</li>
+</ul>
+
+<p class="note">Use <code>state</code> to tell whether a slot holds a target, never <code>mag</code>. With this on an empty slot carries a non-zero magnitude, and code that treats <code>mag != 0</code> as a target will report a target in an empty room.</p>
+
+<h3 id="tracking-algorithm"><span class="n">4.5</span>Tracking algorithm</h3>
+
+<p>It is common for radar systems to use a tracking algorithm, such as a Kalman filter, to build trajectory information for detected objects. The main reason is that range-gate raw data often contains impulse environmental noise, and discrepancies between measurement and prediction. With a tracking algorithm the radar can filter out the impulse noise and provide a much smoother trajectory.</p>
+
+<p>A tracker counter is used to maintain the stability and credibility of the trajectory. Each slot carries a count that rises while the target keeps being seen and falls when it is missed:</p>
+
+<pre><code>kw307_set_moving_tracker_cnt(cnt_limit, display_th);
+kw307_set_stationary_tracker_cnt(cnt_limit, display_th);</code></pre>
+
+<ul>
+<li><code>cnt_limit</code> — the counter's upper limit, in frames: how long a target survives without being seen again. Defaults: 32 moving, 64 stationary.</li>
+<li><code>display_th</code> — the count at which the target is reported. Default 8 for both, and it must not exceed <code>cnt_limit</code>.</li>
+</ul>
+
+<p>Beyond the counters, each band sets what it takes to report a target, and how steadily the reported position follows each new measurement:</p>
+
+<pre><code>kw307_set_motion_threshold(confirm_frames, min_speed, speed_clip, min_speed_sum);
+kw307_set_moving_smoothing(smoothing);
+kw307_set_stationary_tracker_opt(confirm_frames, smoothing, match_distance_cm);</code></pre>
+
+<ul>
+<li><code>confirm_frames</code> (moving) — the number of frames a new moving target's speed is added up over before it is reported, 1~32. Default 8.</li>
+<li><code>min_speed</code> — the slowest movement that counts as a moving target. Default 250.</li>
+<li><code>speed_clip</code> — each frame's speed is capped at this before it is added up, so one spike cannot create a target. 0 = no cap. Default 500.</li>
+<li><code>min_speed_sum</code> — the total the added-up speed must exceed over <code>confirm_frames</code> for the target to be reported. 0 = no check. Default 2000.</li>
+<li><code>confirm_frames</code> (stationary) — consecutive frames a stationary target must be seen in before it is reported, 1~255. Default 3.</li>
+<li><code>match_distance_cm</code> — how far a new sighting may be from where a stationary target was last seen and still count as the same target. Default 100.</li>
+</ul>
+
+<p>Speeds are in the module's own unit. At the default sampling rate 500 is about 0.19 m/s; <code>kw307_set_sample_rate()</code> changes that scale.</p>
+
+<p><code>smoothing</code> is the same weight in thousandths as the range-gate IIR above, applied to the reported track instead of to the gate: 300 (0.3) moving, 60 (0.06) stationary by default.</p>
+
+<p class="note"><code>kw307_set_motion_threshold()</code> is what a motion sensitivity level sets. Reading the level back after setting these four directly reports no level.</p>
+
+<h3 id="line-of-sight-filtering"><span class="n">4.6</span>Line-of-sight filtering</h3>
+
+<p>A person blocks the radar. Someone standing directly behind them sends back almost nothing. So what the module sees at that angle is usually a ghost or clutter, not a second person.</p>
+
+<p>That is why the module reports only the front target by default.</p>
+
+<p>Turn it off to see every candidate:</p>
+
+<pre><code>kw307_en_los(false);   /* report everything, hidden or not */
+    /* ... read every candidate ... */
+kw307_en_los(true);    /* back to normal */</code></pre>
+
+<p>Turn line of sight off when two people in a queue must count as two, or to see every candidate the radar returns while you tune an installation.</p>
+
+<p class="warn"><strong>It also lets reflections through.</strong> An echo behind a moving target is usually that target bounced off a wall. The module drops it for the same reason it drops a hidden person: it is behind something. With line of sight off, both come through. Expect more targets than there are people.</p>
+
+<h3 id="detect-range-and-field-of-view"><span class="n">4.7</span>Detect range and field of view</h3>
+
+<p>In KW307, you can configure the detect range and the field of view. Objects outside this detection zone are ignored before tracking.</p>
+
+<pre><code>kw307_set_detect_range(min_cm, max_cm);          /* the room, in cm */
+kw307_set_detect_fov(fov_deg, shrink_rate_deg);  /* the field of view, and how it narrows with distance */</code></pre>
+
+<p>A fixed FOV covers more floor the further out it reaches. Narrowing it with distance keeps the far end of the zone inside the room. The FOV never narrows below the limit set by <code>kw307_set_fov_min()</code>, 20° by default.</p>
+
+<figure>
+<div class="figbox">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 700" role="img" aria-label="Detection cone with the shrink rate applied">
+  <title>Detection FOV 120 deg, shrink 8 deg per metre</title>
+  <style>.lb{font:16px system-ui,sans-serif;fill:var(--ink2)}.lbm{font:15px system-ui,sans-serif;fill:var(--ink3)}.key{font:17px system-ui,sans-serif;fill:var(--wire)}.ttl{font:600 19px system-ui,sans-serif;fill:var(--ink)}</style>
+  <path d="M 440.0 626.0 L 1094.7 248.0 M 440.0 626.0 L -214.7 248.0" fill="none" stroke="var(--ink3)" stroke-width="1.6" stroke-dasharray="9 7"/>
+  <path d="M 346.5 572.0 A 108.0 108.0 0 0 1 533.5 572.0" fill="none" stroke="var(--line)" stroke-width="1.4" stroke-dasharray="5 6"/>
+  <path d="M 206.2 491.0 A 270.0 270.0 0 0 1 673.8 491.0" fill="none" stroke="var(--line)" stroke-width="1.4" stroke-dasharray="5 6"/>
+  <path d="M -27.7 356.0 A 540.0 540.0 0 0 1 907.7 356.0" fill="none" stroke="var(--line)" stroke-width="1.4" stroke-dasharray="5 6"/>
+  <path d="M 440.0 626.0 L 451.6 619.0 L 462.9 611.7 L 474.0 603.9 L 484.8 595.8 L 495.3 587.3 L 505.5 578.4 L 515.5 569.1 L 525.1 559.5 L 534.4 549.5 L 543.4 539.2 L 552.1 528.6 L 560.4 517.6 L 568.4 506.3 L 576.0 494.7 L 583.2 482.8 L 590.0 470.6 L 596.5 458.2 L 602.6 445.4 L 608.3 432.4 L 613.6 419.2 L 618.4 405.7 L 622.9 392.0 L 626.9 378.0 L 630.4 363.9 L 633.6 349.5 L 636.3 335.0 L 638.5 320.3 L 640.3 305.4 L 641.6 290.4 L 642.5 275.3 L 642.9 260.0 L 642.8 244.6 L 642.3 229.1 L 641.2 213.5 L 639.7 197.8 L 637.7 182.0 L 635.2 166.2 L 632.2 150.4 L 628.7 134.5 L 624.7 118.6 L 255.3 118.6 L 251.3 134.5 L 247.8 150.4 L 244.8 166.2 L 242.3 182.0 L 240.3 197.8 L 238.8 213.5 L 237.7 229.1 L 237.2 244.6 L 237.1 260.0 L 237.5 275.3 L 238.4 290.4 L 239.7 305.4 L 241.5 320.3 L 243.7 335.0 L 246.4 349.5 L 249.6 363.9 L 253.1 378.0 L 257.1 392.0 L 261.6 405.7 L 266.4 419.2 L 271.7 432.4 L 277.4 445.4 L 283.5 458.2 L 290.0 470.6 L 296.8 482.8 L 304.0 494.7 L 311.6 506.3 L 319.6 517.6 L 327.9 528.6 L 336.6 539.2 L 345.6 549.5 L 354.9 559.5 L 364.5 569.1 L 374.5 578.4 L 384.7 587.3 L 395.2 595.8 L 406.0 603.9 L 417.1 611.7 L 428.4 619.0 L 440.0 626.0 Z" fill="var(--signal-bg)" stroke="var(--wire)" stroke-width="2.4" stroke-linejoin="round"/>
+  <text class="key" x="440.0" y="70.0" text-anchor="middle">40 deg at 10 m</text>
+  <text class="key" x="440.0" y="356.0" text-anchor="middle">80 deg at 5 m</text>
+  <text class="key" x="320" y="612" text-anchor="end">120 deg at the sensor</text>
+  <circle cx="440" cy="626" r="7" fill="var(--wire)"/>
+  <text class="lb" x="440" y="656" text-anchor="middle">KW307</text>
+  <text class="ttl" x="440" y="30" text-anchor="middle">The cone is 120 deg at the sensor and loses 8 deg every metre</text>
+  <text class="lbm" x="440" y="688" text-anchor="middle">Dashed lines: the same 120 deg with no shrink at all. Rings are 2, 5, 10 m.</text>
+</svg>
+</div>
+<figcaption>At the default 120° with a shrink of 8° per metre: 120° at the module, 80° at 5 m, 40° at 10 m.</figcaption>
+</figure>
+
+<h3 id="presence-flag"><span class="n">4.8</span>Presence flag</h3>
+
+<p>The presence flag is a simple on/off indication. Any object that shows motion or micro-Doppler signatures inside the detection zone sets it. It sets as soon as a target is confirmed, and a hold time keeps it from flickering: after the last detection, the flag stays set for the hold time, in frames.</p>
+
+<pre><code>kw307_set_presence_hold_time(frames);   /* default 220 = 11 s */</code></pre>
+
+<p>Normal operation is 20 Hz, so 1 s = 20 frames; the most, 32767 frames, is about 1638 s (27 min). With adaptive power saving on (<code>kw307_en_update_rate_adas()</code>) the hold also runs in normal time. At a lower update rate with adaptive saving off, one frame is one report (at 1 Hz, about 1 s). <code>kw307_set_stationary_release_time()</code> counts the same way.</p>
+
+<p class="note"><strong>For a product's occupancy logic, we recommend using the tracker output or the range-gate data.</strong> They report each target's magnitude, distance, angle and speed at a fixed rate, 20 Hz by default, so your logic can decide what counts as a person. The presence flag is set by any motion in the zone.</p>
+
+<h2 id="application-examples"><span class="n">5</span>Application examples</h2>
+
+<p>Five worked configurations ship with the SDK, one per <code>DEMO_SCENE_*</code> in every <code>example_platform/*/main.c</code>. They are not presets: no call selects one. Each block is the same ordinary setters this guide describes, already tuned for a room.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Scene</th><th>The room it was tuned for</th></tr>
+<tr><td><code>DEMO_SCENE_OUTDOOR</code></td><td>A yard or a doorway, long and busy</td></tr>
+<tr><td><code>DEMO_SCENE_OFFICE</code></td><td>A room someone works in, sitting still for long stretches</td></tr>
+<tr><td><code>DEMO_SCENE_DESK</code></td><td>One person, close, a screen away</td></tr>
+<tr><td><code>DEMO_SCENE_URINAL</code></td><td>A narrow bay, one occupant, quick turnover</td></tr>
+<tr><td><code>DEMO_SCENE_HAND_DRYER</code></td><td>A hand held under the outlet, in a tight window</td></tr>
+</table>
+</div>
+
+<p>Pick the one whose room is closest to yours and read its block in <code>example_platform/*/main.c</code> — the baseband gain, the range, the field of view, the two sensitivity levels, the detection thresholds, the tracker counters and the holds, all in one place and all commented. Copy it and adjust from there.</p>
+
+<p><code>DEMO_SCENE_OFFICE</code> is the one the module already boots at: motion level 2, stationary level 1.</p>
+
+<h2 id="function-reference"><span class="n">6</span>Function reference</h2>
+
+<p>Grouped by where each call acts on the diagram. Every setter has a matching <code>kw307_get_*</code> that reads the value back; those take the same pointers the setter takes values, and are omitted here.</p>
+
+<h3 id="session"><span class="n">6.1</span>Session</h3>
+
+<div class="scroll">
+<table>
+<tr><th>Call</th><th>What it does</th></tr>
+<tr><td><code>kw307_init()</code> / <code>kw307_close()</code></td><td>Open and close the link.</td></tr>
+<tr><td><code>kw307_update()</code></td><td>Read the UART and call the registered callback. Call it on every pass of your main loop.</td></tr>
+<tr><td><code>kw307_radar_init()</code></td><td>Re-initialise the module. Settings return to the last save; unsaved changes are discarded.</td></tr>
+<tr><td><code>kw307_save_settings()</code></td><td>Write the current settings to flash. Wait about 1 s before the next call. Call it only after settings have changed, not on every pass of a loop: a call that saves a change rewrites the flash.</td></tr>
+<tr><td><code>kw307_factory_reset()</code></td><td>Return every setting, and the output mode, to the default.</td></tr>
+<tr><td><code>kw307_clear_state()</code></td><td>Drop stale targets without touching settings.</td></tr>
+<tr><td><code>kw307_check_fw_version()</code></td><td>Check the module firmware is compatible with this SDK: <code>0</code> compatible, <code>1</code> firmware 2.7.6, negative on a link error.</td></tr>
+</table>
+</div>
+
+<h3 id="filters"><span class="n">6.2</span>Filters</h3>
+
+<div class="scroll">
+<table>
+<tr><th>Call</th><th>What it does</th></tr>
+<tr><td><code>kw307_set_motion_sensitivity(level)</code></td><td>Moving band as one level, 0~9, or -1 for any motion at all.</td></tr>
+<tr><td><code>kw307_set_stationary_sensitivity(level)</code></td><td>Stationary band as one level, 0~9.</td></tr>
+<tr><td><code>kw307_set_moving_hpf_corner(corner, nd)</code></td><td>Moving high-pass, directly.</td></tr>
+<tr><td><code>kw307_set_moving_lpf_corner(corner)</code></td><td>Moving low-pass.</td></tr>
+<tr><td><code>kw307_set_stationary_hpf_corner(corner, nd)</code></td><td>Stationary high-pass.</td></tr>
+<tr><td><code>kw307_set_stationary_lpf_corner(corner)</code></td><td>Stationary low-pass.</td></tr>
+<tr><td><code>kw307_set_moving_background(update)</code></td><td>Freeze or keep adapting, moving band. Not saved.</td></tr>
+<tr><td><code>kw307_set_stationary_background(update)</code></td><td>Freeze or keep adapting, stationary band. Not saved.</td></tr>
+<tr><td><code>kw307_en_moving_env_subtraction(on)</code></td><td>Subtract the environment, or pass it through. Not saved.</td></tr>
+<tr><td><code>kw307_en_stationary_env_subtraction(on)</code></td><td>The same, stationary band. Not saved.</td></tr>
+<tr><td><code>kw307_en_stationary_hold(on)</code></td><td>Freeze the stationary detections while you disturb that band. Not saved.</td></tr>
+<tr><td><code>kw307_en_analog_hpf(on)</code></td><td>The analog high-pass, in the receiver. On by default.</td></tr>
+<tr><td><code>kw307_en_analog_hpf_swcap(on)</code></td><td>Its switched-capacitor path. On by default; turn both off to see something that never moves.</td></tr>
+</table>
+</div>
+
+<h3 id="detection-and-reporting"><span class="n">6.3</span>Detection and reporting</h3>
+
+<div class="scroll">
+<table>
+<tr><th>Call</th><th>What it does</th></tr>
+<tr><td><code>kw307_set_detect_range(min_cm, max_cm)</code></td><td>Detect range: the near and far limits, in cm.</td></tr>
+<tr><td><code>kw307_set_detect_fov(fov_deg, shrink_rate_deg)</code></td><td>Field of view, and how it narrows with distance.</td></tr>
+<tr><td><code>kw307_set_fov_min(fov_deg)</code></td><td>The narrowest the shrink can make the FOV.</td></tr>
+<tr><td><code>kw307_set_mag_threshold(moving, stationary)</code></td><td>The detection threshold per band.</td></tr>
+<tr><td><code>kw307_en_noise_floor_report(on)</code></td><td>Report the room's noise floor in an empty slot's magnitude.</td></tr>
+<tr><td><code>kw307_set_presence_hold_time(frames)</code></td><td>How long the presence flag holds after the last detection, in frames (20 = 1 s).</td></tr>
+<tr><td><code>kw307_en_gpio_presence_flag(on)</code></td><td>Mirror the presence flag on the GPIO pin. Not saved.</td></tr>
+<tr><td><code>kw307_set_output(mode)</code></td><td>Which frame the module sends: <code>_NORMAL</code>, <code>_NORMAL_WITH_SPD</code>, <code>_NORMAL_WITH_SPD_RG</code>, or <code>_OFF</code>. Not saved.</td></tr>
+<tr><td><code>kw307_on_frame(cb)</code></td><td>Receive <code>KW307_OUTPUT_NORMAL</code> frames.</td></tr>
+<tr><td><code>kw307_on_frame_spd(cb)</code></td><td>Receive <code>KW307_OUTPUT_NORMAL_WITH_SPD</code> frames.</td></tr>
+<tr><td><code>kw307_on_frame_spd_rg(cb)</code></td><td>Receive <code>KW307_OUTPUT_NORMAL_WITH_SPD_RG</code> frames.</td></tr>
+</table>
+</div>
+
+<h3 id="custom-frames"><span class="n">6.4</span>Custom frames</h3>
+
+<div class="scroll">
+<table>
+<tr><th>Call</th><th>What it does</th></tr>
+<tr><td><code>kw307_out_clear(c)</code></td><td>Every block off - the start of a new shape.</td></tr>
+<tr><td><code>kw307_out_normal_with_spd(c)</code> / <code>kw307_out_normal_with_spd_rg(c)</code></td><td>Start from the <code>KW307_OUTPUT_NORMAL_WITH_SPD</code> or <code>KW307_OUTPUT_NORMAL_WITH_SPD_RG</code> shape instead.</td></tr>
+<tr><td><code>kw307_out_presence(c, on)</code></td><td>The presence flag.</td></tr>
+<tr><td><code>kw307_out_moving_trk(c, on, full, speed)</code></td><td>The two moving trackers, whole or state only, with or without speed.</td></tr>
+<tr><td><code>kw307_out_stationary(c, nearest, second)</code></td><td>The nearest and second-nearest stationary targets.</td></tr>
+<tr><td><code>kw307_out_stationary_trk(c, on, full)</code></td><td>The four stationary-band trackers.</td></tr>
+<tr><td><code>kw307_out_room_max(c, on)</code></td><td>The room's peak magnitude per band.</td></tr>
+<tr><td><code>kw307_out_rg(c, start_rg, end_rg, moving, stationary, mag_only)</code></td><td>Range gates, per band.</td></tr>
+<tr><td><code>kw307_out_len(c)</code></td><td>The frame size that shape will produce.</td></tr>
+<tr><td><code>kw307_set_output_config(c)</code></td><td>Send the shape. Nothing reaches the module before this.</td></tr>
+<tr><td><code>kw307_set_output_rg(start_rg, end_rg, en_moving_trk, en_stationary_trk)</code></td><td>The board-tuning shape in one call: both bands' gates, trackers optional.</td></tr>
+<tr><td><code>kw307_on_frame_f3(cb)</code></td><td>Receive any shape, decoded into <code>KW307FrameF3_t</code>.</td></tr>
+<tr><td><code>kw307_dec_frame_f3(data, len, out)</code></td><td>Decode one from payload bytes, for your own transport.</td></tr>
+</table>
+</div>
+
+<h3 id="trackers"><span class="n">6.5</span>Trackers</h3>
+
+<div class="scroll">
+<table>
+<tr><th>Call</th><th>What it does</th></tr>
+<tr><td><code>kw307_en_los(on)</code></td><td>Drop targets standing directly behind a nearer one. On by default; turn it off to see every candidate.</td></tr>
+<tr><td><code>kw307_set_moving_tracker_cnt(cnt_limit, display_th)</code></td><td>Moving counters, in frames.</td></tr>
+<tr><td><code>kw307_set_stationary_tracker_cnt(cnt_limit, display_th)</code></td><td>Stationary counters.</td></tr>
+<tr><td><code>kw307_set_motion_threshold(frames, min_speed, clip, sum)</code></td><td>What counts as movement. A level sets these.</td></tr>
+<tr><td><code>kw307_set_moving_smoothing(smoothing)</code></td><td>How steadily a moving target's position follows.</td></tr>
+<tr><td><code>kw307_set_stationary_tracker_opt(confirm, smoothing, match_cm)</code></td><td>What it takes to report a stationary target, and how steadily.</td></tr>
+<tr><td><code>kw307_set_RangeGate_IIR(moving, stationary)</code></td><td>How much each gate's magnitude, distance, angle and speed are averaged over frames.</td></tr>
+<tr><td><code>kw307_set_presence_hold_zone(on, distance_cm, fov_deg)</code></td><td>Hold presence while somebody stands still in a near forward zone.</td></tr>
+<tr><td><code>kw307_set_stationary_release_time(enable, frames)</code></td><td>Drop a stationary target after this many frames (20 = 1 s).</td></tr>
+<tr><td><code>kw307_set_tracker_state_advanced_mode(advanced)</code></td><td>Choose the advanced reporting form, which adds the in-between states, or the simple one (Empty / Valid).</td></tr>
+<tr><td><code>kw307_set_advanced_clutter_rejection(en, spd_th, dev_th)</code></td><td>Reject repetitive motion such as a fan.</td></tr>
+</table>
+</div>
+
+<h3 id="front-end-and-power"><span class="n">6.6</span>Front end and power</h3>
+
+<div class="scroll">
+<table>
+<tr><th>Call</th><th>What it does</th></tr>
+<tr><td><code>kw307_set_gain(index)</code></td><td>Baseband gain in the analog receive chain, 0 to +21 dB.</td></tr>
+<tr><td><code>kw307_set_equalizer_gain(index)</code></td><td>Equalizer gain in the analog receive chain, 0 to +12 dB.</td></tr>
+<tr><td><code>kw307_set_baseband_att(index)</code></td><td>Baseband attenuator, 0 to -12 dB. Stationary levels 7~9 set it too.</td></tr>
+<tr><td><code>kw307_set_digital_gain(index)</code></td><td>Digital gain.</td></tr>
+<tr><td><code>kw307_set_equalizer_order(order)</code></td><td>Equalizer order.</td></tr>
+<tr><td><code>kw307_set_antenna(pa_num, rx_ant_num, with_angle)</code></td><td>Which antennas are in use, and whether the angle is measured.</td></tr>
+<tr><td><code>kw307_set_sample_rate(sel)</code></td><td>Sampling rate. The filter equations assume the 2 kHz default.</td></tr>
+<tr><td><code>kw307_set_update_rate(rate)</code></td><td>Update rate, as one of three named settings. Not saved.</td></tr>
+<tr><td><code>kw307_en_update_rate_adas(on)</code></td><td>Adaptive power saving, on top of the cycle. Not saved.</td></tr>
+<tr><td><code>kw307_set_update_cycle(sleep_frames, skip_frames, output_count, crystal_off)</code></td><td>The update cycle itself, for a rate the three do not name. Not saved.</td></tr>
+<tr><td><code>kw307_set_power_mode(mode)</code></td><td>Power mode. After DOWN, sensing resumes only on NORMAL. Not saved.</td></tr>
+</table>
+</div>
+
+<h2 id="uart-protocol"><span class="n">7</span>UART protocol</h2>
+
+<p>Everything above is the SDK speaking this protocol for you. This section is the protocol itself. You need the bytes in two cases: a host that does not run the SDK, and a link that misbehaves and needs a logic analyser on it.</p>
+
+<h3 id="uart-link-settings"><span class="n">7.1</span>UART link settings</h3>
+
+<div class="scroll">
+<table>
+<tr><th></th><th></th></tr>
+<tr><td>Baud rate</td><td>115200</td></tr>
+<tr><td>Data bits · parity · stop bits</td><td>8 · none · 1</td></tr>
+<tr><td>Flow control</td><td>None</td></tr>
+<tr><td>Logic level</td><td>3.3 V TTL — low 0 V, high 3.3 V</td></tr>
+<tr><td>Byte order</td><td>Big-endian, MSB first, payloads included</td></tr>
+</table>
+</div>
+
+<h3 id="uart-frame-format"><span class="n">7.2</span>UART frame format</h3>
+
+<pre><code>00 00 00 00 00   AA  55   CMD   LEN_H LEN_L   DATA ...   CRC_H CRC_L
+└── wake-up ──┘  └SOF┘</code></pre>
+
+<div class="scroll">
+<table>
+<tr><th>Field</th><th></th></tr>
+<tr><td>Wake-up</td><td>At least five <code>0x00</code> bytes before <strong>every</strong> frame you send. The module drops into an idle low-power state between commands, and these wake it; they are discarded. It has to be <code>0x00</code> — a run of them gives the RX line the repeated edges the wake detector is watching for, and another filler byte is not a substitute.</td></tr>
+<tr><td>SOF</td><td><code>AA 55</code> to write or to stream, <code>AA 56</code> to read. The second byte is the only thing that distinguishes a write from a read request.</td></tr>
+<tr><td>CMD</td><td>What the frame is about. The same CMD number is used for the write and the read of a setting.</td></tr>
+<tr><td>LEN</td><td>Payload length, big-endian, not counting CRC.</td></tr>
+<tr><td>CRC</td><td>CRC-16, polynomial <code>0x8005</code>, seed <code>0xFFFF</code>, big-endian, computed over CMD + LEN + DATA. The SOF and the wake-up bytes are outside it.</td></tr>
+</table>
+</div>
+
+<p class="warn"><strong>Send the wake-up bytes and the frame as one stream.</strong> A gap lets the module go back into that idle state before the command arrives. The command is then lost with no error on either side: the frame was never received, so there is nothing to NACK. This is a common cause when a host that does not use the SDK receives no reply.</p>
+
+<h3 id="write-and-read-requests"><span class="n">7.3</span>Write and read requests</h3>
+
+<p>A <strong>write</strong> is <code>AA 55 [CMD] …</code>. The module replies with an ACK frame on CMD <code>0xAC</code> whose payload carries the CMD it is answering and a status byte:</p>
+
+<div class="scroll">
+<table>
+<tr><th>Status</th><th></th></tr>
+<tr><td><code>0x00</code></td><td>Done.</td></tr>
+<tr><td><code>0x01</code></td><td>The value was out of range.</td></tr>
+<tr><td><code>0x02</code></td><td>The module does not know that CMD — usually firmware older than the command.</td></tr>
+<tr><td><code>0x03</code></td><td>CRC mismatch; the frame arrived damaged.</td></tr>
+<tr><td><code>0x04</code></td><td>The length field did not match the payload.</td></tr>
+</table>
+</div>
+
+<p>A <strong>read</strong> is <code>AA 56 [CMD]</code> with an empty or selector-only payload, and the module answers on the same CMD with the current value.</p>
+
+<p>Output frames streamed by the module (<code>0xF0</code>, <code>0xF3</code>) arrive without a request, with the same header and CRC but no wake-up bytes, and no ACK: they are output, not a reply.</p>
+
+<h3 id="output-frame-layouts"><span class="n">7.4</span>Output frame layouts</h3>
+
+<p>This section is for a host that is <strong>not</strong> running the SDK — one written in Python, C#, or on a PLC. If you are using the SDK, you never see these bytes: the decoders hand you a struct. <code>core/KW307_protocol.h</code> says what every field means, including the <code>state</code> values and which ones mean a Valid target. That header is the reference; this is only the byte layout, which no header carries.</p>
+
+<p>Each of the three output modes has <strong>one fixed layout</strong>. Every multi-byte value is 16-bit <strong>big-endian</strong>, and distances on the wire are in <strong>millimetres</strong> — the SDK converts them to centimetres, a host parsing the bytes does not.</p>
+
+<p>A <strong>tracker</strong> is the same 8 bytes everywhere it appears:</p>
+
+<div class="scroll">
+<table>
+<tr><th>Offset</th><th>Field</th><th>Type</th></tr>
+<tr><td>+0~1</td><td><code>distance_mm</code></td><td>uint16</td></tr>
+<tr><td>+2~3</td><td><code>angle_tenth</code></td><td>int16, 0.1 degree</td></tr>
+<tr><td>+4~5</td><td><code>mag</code></td><td>uint16</td></tr>
+<tr><td>+6</td><td><code>state</code></td><td>uint8</td></tr>
+<tr><td>+7</td><td><code>counter</code></td><td>uint8</td></tr>
+</table>
+</div>
+
+<h4><code>KW307_OUTPUT_NORMAL</code>, CMD <code>0xF0</code>, 27 bytes</h4>
+
+<div class="scroll">
+<table>
+<tr><th>Offset</th><th>Field</th></tr>
+<tr><td>0~1</td><td><code>frame_index</code></td></tr>
+<tr><td>2</td><td><code>presence_flag</code></td></tr>
+<tr><td>3~10</td><td>moving target 1</td></tr>
+<tr><td>11~18</td><td>moving target 2</td></tr>
+<tr><td>19~26</td><td>stationary target</td></tr>
+</table>
+</div>
+
+<h4><code>KW307_OUTPUT_NORMAL_WITH_SPD</code>, CMD <code>0xF3</code>, 34 bytes</h4>
+
+<div class="scroll">
+<table>
+<tr><th>Offset</th><th>Field</th></tr>
+<tr><td>0~1</td><td><code>frame_index</code></td></tr>
+<tr><td>2~4</td><td><code>B0 2C 09</code> — the shape bytes, always these three in this mode</td></tr>
+<tr><td>5</td><td><code>presence_flag</code></td></tr>
+<tr><td>6~13</td><td>moving target 1</td></tr>
+<tr><td>14~21</td><td>moving target 2</td></tr>
+<tr><td>22~25</td><td>the two moving targets' speeds, int16 each</td></tr>
+<tr><td>26~33</td><td>stationary target</td></tr>
+</table>
+</div>
+
+<h4><code>KW307_OUTPUT_NORMAL_WITH_SPD_RG</code>, CMD <code>0xF3</code>, 66 bytes</h4>
+
+<div class="scroll">
+<table>
+<tr><th>Offset</th><th>Field</th></tr>
+<tr><td>0~1</td><td><code>frame_index</code></td></tr>
+<tr><td>2~4</td><td><code>30 2E 09</code> — the shape bytes, always these three in this mode</td></tr>
+<tr><td>5</td><td><code>presence_flag</code></td></tr>
+<tr><td>6~13</td><td>moving target 1</td></tr>
+<tr><td>14~21</td><td>moving target 2</td></tr>
+<tr><td>22~25</td><td>the two moving targets' speeds, int16 each</td></tr>
+<tr><td>26~33</td><td>stationary target</td></tr>
+<tr><td>34~41</td><td><code>distance_mm</code>, stationary-band gates 0, 1, 2, 3</td></tr>
+<tr><td>42~49</td><td><code>angle_tenth</code>, gates 0~3</td></tr>
+<tr><td>50~57</td><td><code>mag</code>, gates 0~3</td></tr>
+<tr><td>58~65</td><td>speed, gates 0~3</td></tr>
+</table>
+</div>
+
+<p>Those are the raw per-gate readings, before grouping and before any tracker. A gate with nothing in it reads as noise, not as zero.</p>
+
+<p class="warn"><strong>Tell the two <code>0xF3</code> modes apart by bytes 2~4, never by length.</strong> The two differ in those three bytes. A length check cannot tell a truncated frame of one shape from a whole frame of the other. <code>KW307_OUTPUT_NORMAL</code> has no shape bytes — it is <code>0xF0</code>, and only ever 27 bytes.</p>
+
+
+
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var btns = document.querySelectorAll('.themesw button');
+  var mq   = window.matchMedia('(prefers-color-scheme: dark)');
+
+  function current(){
+    return root.getAttribute('data-theme') || (mq.matches ? 'dark' : 'light');
+  }
+  function paint(){
+    var now = current();
+    btns.forEach(function(b){
+      b.setAttribute('aria-pressed', String(b.dataset.t === now));
+    });
+  }
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      root.setAttribute('data-theme', b.dataset.t);
+      try{ localStorage.setItem('kw307-theme', b.dataset.t); }catch(e){}
+      paint();
+    });
+  });
+  /* Follow the system while nothing has been picked. */
+  mq.addEventListener('change', function(){ if (!root.getAttribute('data-theme')) paint(); });
+  paint();
+})();
+</script>
