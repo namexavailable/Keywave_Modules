@@ -1,0 +1,6114 @@
+/*
+ * Copyright 2026 Keywave Technology Ltd
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * dashboard_expert.h — KW307 WiFi Dashboard
+ *
+ * The dashboard page this build serves, as the PROGMEM definition of
+ * KW307WiFi::_dashboardHtml. Included by KW307WiFi.cpp exactly once, from the
+ * spot where the definition used to sit inline — which is why this header
+ * defines a member instead of declaring one.
+ */
+
+const char KW307WiFi::_dashboardHtml[] PROGMEM = R"HTMLEOF(
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<!-- Without this tag a phone lays the page out on a 980 px virtual canvas and
+     then shrinks the result to fit the screen, so 16 px text arrives at about
+     6 px and every width media query below sees 980 rather than the real 390.
+
+     initial-scale is the one knob for how large the page reads. It pins the
+     ratio rather than the layout width, so the apparent text size comes out the
+     same on any phone; the layout viewport becomes device-width / scale, and
+     that is the width the media queries below see. On a 390 px phone:
+
+       scale   layout viewport   16 px text reads as
+       1.00        390 px            16.0 px   1:1, nothing shrunk
+       0.90        433 px            14.4 px
+       0.85        459 px            13.6 px
+       0.80        488 px            12.8 px   <-- set here
+       0.70        557 px            11.2 px
+       0.60        650 px             9.6 px
+       0.50        780 px             8.0 px
+       (no tag)    980 px             6.4 px   what this page did before
+
+     Shrinking costs tap area as well as height — at 0.80 a 28 px select reads
+     as 22 px — so this is the trade against the dropdowns being easy to hit.
+
+     Desktop browsers ignore the tag entirely, so none of this reaches the
+     >= 1280 px layout. -->
+<meta name="viewport" content="width=device-width,initial-scale=0.8">
+<style>
+/* ===========================================================================
+   Palette. Every colour on the page is a token here and nothing below this
+   block names one directly, so a theme cannot half-apply: a rule that was
+   missed would have no colour at all rather than a wrong one.
+
+   Dark is the default and carries no attribute; light is data-theme="light" on
+   the document element. The plot states the same two themes a second time -
+   see PLOT in the script - because a canvas is painted rather than styled and
+   can read none of this.
+   =========================================================================== */
+:root{
+  --bg:#0a0a0a;        --surface:#1a1a1a;     --surface-2:#252525;
+  --cell-bg:#151515;   --cell-bg-f:#1b1b1b;
+  --border:#2a2a2a;    --border-2:#333;       --border-3:#444;
+  --border-4:#555;     --rule:#2c2c2c;        --rule-2:#262626;
+  --fg:#ddd;           --fg-2:#bbb;           --fg-3:#888;
+  --fg-4:#777;         --fg-5:#666;           --fg-6:#555;
+  --on-accent:#fff;
+  --accent:#0af;       --accent-hi:#00aaff;
+  --btn:#003399;       --btn-h:#0050d0;
+  --enter:#006633;     --enter-h:#009955;
+  --busy:#aa6600;      --pending:#a36b00;
+  --ok:#0c6;           --err:#f53;            --warn:#fa3;
+  --chg:#d90;          --note:#7a8;           --note-amber:#c99a3a;
+  --wo:#e5b73b;        --wo-dim:#8a7430;
+  --tab-on:#0a4;
+  --act-bg:#2c2c2c;    --act-bg-h:#3d3d3d;
+  --basic-bg:#26230f;  --basic-border:#5a5124;
+  --fwbtn-bg:#333;     --fwbtn-bg-h:#444;     --fwbtn-bd:#666;  --fwbtn-fg:#fff;
+  --pres-bg:#04361f;   --pres-bg-h:#075c33;   --pres-bd:#00c060;
+  --pres-val:#00e06a;  --pres-lb:#8fe0b4;     --pres-fg:#7bffb0;
+  --pres-glow:rgba(0,224,106,0.55);
+  --nd-bg:#2a1f00;
+  --dgr-bg:#5a1a1a;    --dgr-bg-h:#7a2a2a;    --dgr-bd:#a33;    --dgr-fg:#fdd;
+  --hot-fg:#ff5b5b;    --hot-bg:#1f1414;
+  --plot-bg:#000;      --plot-bd:#222;
+  --outbox-bg:rgba(20,20,20,0.92);
+  --shadow:rgba(0,0,0,0.6);
+  --attn-ring:rgba(250,170,51,0.55);  --attn-ring-0:rgba(250,170,51,0);
+}
+/* Light. Panels go white on a light grey ground, so a card still reads as a
+   card rather than dissolving into the page; the accents come down in
+   lightness far enough to hold on white - #0af is 2.5:1 there and would fail
+   as text. Anything used as a button face keeps white text, which is why
+   --busy and --pending stay dark instead of taking the pale amber the other
+   warm tokens use. */
+:root[data-theme="light"]{
+  --bg:#eef0f4;        --surface:#fff;        --surface-2:#f1f3f6;
+  --cell-bg:#f7f8fa;   --cell-bg-f:#fff;
+  --border:#d5d9e0;    --border-2:#c3c8d1;    --border-3:#b2b8c2;
+  --border-4:#a2a9b4;  --rule:#e0e4ea;        --rule-2:#e6e9ee;
+  --fg:#1b1e23;        --fg-2:#3a4048;        --fg-3:#5b626b;
+  --fg-4:#6a717b;      --fg-5:#79808a;        --fg-6:#89909a;
+  --on-accent:#fff;
+  --accent:#0062bd;    --accent-hi:#0062bd;
+  --btn:#1450b8;       --btn-h:#0d3f96;
+  --enter:#0a7340;     --enter-h:#0b8c4e;
+  --busy:#a85f00;      --pending:#8f5d00;
+  --ok:#0a7340;        --err:#c22c18;         --warn:#9a6400;
+  --chg:#8a6408;       --note:#46735a;        --note-amber:#7f610d;
+  --wo:#7f610d;        --wo-dim:#9a8448;
+  --tab-on:#0a7340;
+  --act-bg:#e9ecf1;    --act-bg-h:#dbe0e7;
+  --basic-bg:#fdf8e1;  --basic-border:#e6d68a;
+  --fwbtn-bg:#e2e6ec;  --fwbtn-bg-h:#d3d9e1;  --fwbtn-bd:#a2a9b4; --fwbtn-fg:#1b1e23;
+  --pres-bg:#dcf2e5;   --pres-bg-h:#c4e8d3;   --pres-bd:#0a9a52;
+  --pres-val:#06713a;  --pres-lb:#2f6b4a;     --pres-fg:#066333;
+  --pres-glow:rgba(10,154,82,0.45);
+  --nd-bg:#fcf2da;
+  --dgr-bg:#fbe3e0;    --dgr-bg-h:#f5cdc8;    --dgr-bd:#b03528;  --dgr-fg:#8b2115;
+  --hot-fg:#c22c18;    --hot-bg:#fdebe9;
+  --plot-bg:#fff;      --plot-bd:#c3c8d1;
+  --outbox-bg:rgba(255,255,255,0.94);
+  --shadow:rgba(16,24,40,0.10);
+  --attn-ring:rgba(154,100,0,0.45);   --attn-ring-0:rgba(154,100,0,0);
+}
+/* Theme switch, beside the page's name. A control over the page rather than a
+   reading off the module, so it belongs with the title and not in the bar
+   with the connection state. */
+#themeBtn{background:var(--surface-2);color:var(--fg-3);
+          border:1px solid var(--border-3);border-radius:4px;
+          width:34px;height:28px;padding:0;margin-left:10px;font-size:15px;
+          line-height:1;cursor:pointer;font-family:inherit;vertical-align:middle;}
+#themeBtn:hover{background:var(--fwbtn-bg);color:var(--fg-2);}
+*{box-sizing:border-box;margin:0;padding:0;font-family:sans-serif;}
+body{background:var(--bg);color:var(--fg);padding:10px;font-size:16px;}
+h1{color:var(--accent-hi);font-size:24px;display:inline;}
+.sub{color:var(--fg-5);font-size:16px;margin-left:8px;}
+/* The version wraps as one piece on a narrow screen, never mid-number. */
+#verTag{white-space:nowrap;}
+#bar{background:var(--surface);border:1px solid var(--border);border-radius:6px;
+     padding:6px 10px;margin:8px 0;display:flex;gap:14px;align-items:center;
+     flex-wrap:wrap;font-size:16px;}
+#bar b{color:var(--accent);}
+/* The status bar is flex-wrap with no fixed height, so an item that grows can
+ * wrap the line and push the plot below it down. #rate and #nk change as frames
+ * arrive, so both are given a width instead of tracking their text: #rate fits
+ * its longest reading ('100.0 Hz . drop 100%') and still shrinks on a narrow
+ * screen, #nk fits three digits. #st takes the space left over, and ellipses
+ * rather than wrapping (min-width:0 is what lets a flex item do that). */
+#bar .st{flex:1;color:var(--fg-3);
+         min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#bar #rate{flex:0 1 170px;}
+#bar #nk{display:inline-block;min-width:2.2em;}
+#bar .st.ok{color:var(--ok);} #bar .st.err{color:var(--err);}
+
+/* Tab bar over the settings column. Buttons wrap rather than scroll, so on a
+   narrow screen they land on two lines instead of hiding one off the edge. */
+#tabs{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 8px;}
+/* The labels say what the tab is for rather than naming a protocol, so they are
+   too long for one line in a 438 px column. Each becomes a block of two or
+   three lines instead - about 83 by 65 px at the size the settings column
+   uses - and all five still sit on one row.
+
+   flex:1 1 0, NOT 1 1 auto. With an auto basis each button starts from its own
+   single-line width and the five then shrink in proportion, so they end up
+   different widths and whichever label happens to fit stays on one line: a
+   ragged strip rather than a row of tabs. A zero basis gives every button
+   exactly one fifth of the row whatever it says, which is what makes the
+   wrapping uniform and the bar look deliberate.
+
+   min-width:0 for the same reason - a floor would fight the equal share, and
+   the share is already wider than the longest single word (Advanced, about
+   58 px at the size this column uses).
+
+   The row stretches every button to the height of the tallest, so min-height
+   is not there to line them up; it is there so a three-line label does not
+   have to exist for the bar to look like this. The inner flex centres one, two
+   and three-line labels alike, which is the only reason a two-line button does
+   not sit high in its own box. */
+#tabs button{flex:1 1 0;min-width:0;padding:9px 8px;font-size:15px;
+  white-space:normal;line-height:1.25;min-height:64px;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  background:var(--surface-2);color:var(--fg-2);border:1px solid var(--border-2);border-radius:6px;}
+#tabs button.on{background:var(--tab-on);color:var(--on-accent);border-color:var(--tab-on);}
+.tabpane{display:none;} .tabpane.on{display:block;}
+/* Section heading inside a generated tab — lighter than a panel title, since
+   these repeat a lot more often. */
+.sec{margin:10px 0 4px;padding-top:8px;border-top:1px solid var(--rule);
+  color:var(--accent);font-size:13px;}
+/* Amber marks a command the firmware will accept but never report back: its
+   read path has no case for it, so the read-back has to skip it and nothing
+   here can confirm it landed. Worth seeing at a glance rather than only
+   discovering by its absence from the result. */
+.sec.wo{color:var(--wo);}
+/* Bounded rather than viewport-tall: this panel is the last thing in the
+   settings column, so a box sized to fill the screen would leave most of a
+   scroll of empty black under a log that is usually a few lines long. The wide
+   layout docks the panel beside the plot and overrides both figures. */
+#fLog{height:40vh;min-height:200px;overflow-y:auto;padding:4px 2px;
+        font:12px/1.5 Consolas,'DejaVu Sans Mono',monospace;}
+#fLog div{white-space:nowrap;}
+#fLog .gap{color:var(--err);}
+#fLog .jump{color:var(--chg);}
+#fLog .note{color:var(--note);}
+#fLogFoot{margin:6px 0 0;}
+/* The log's switch, up in the status bar. The log is a panel rather than a plot
+   overlay, so it has no corner of its own to carry a control, and the bar is the
+   one strip that is on screen in both layouts and at every width. Pressed means
+   the log is showing, which is how the page opens. */
+#logBtn{background:var(--surface-2);color:var(--fg-3);border:1px solid var(--border-3);border-radius:4px;
+        padding:2px 10px;font-size:16px;font-family:inherit;cursor:pointer;
+        letter-spacing:1px;white-space:nowrap;}
+#logBtn:hover{background:var(--fwbtn-bg);color:var(--fg-2);}
+#logBtn.on{color:var(--accent);border-color:var(--accent);}
+/* Put away with gaps recorded. The heading that carries the count is off screen,
+   and a gap is the one thing worth knowing about while not looking at it. */
+#logBtn.gaps{color:var(--err);border-color:var(--dgr-bd);}
+/* The toggle, and what it does, both belong to the wide layout only.
+   Hiding the log is worth a control when it buys the plot a 320 px column
+   back. Below 1560 the log is just another panel at the foot of the settings
+   column, where scrolling past it costs nothing and a button to make it
+   vanish is a way to lose it.
+
+   The two rules go together on purpose. If only the button were hidden, a
+   window narrowed after the log had been put away would carry the nolog
+   class into a layout with nothing to undo it, and the log would be gone
+   with no way back. Tying the effect to the same query as the control means
+   the class is inert wherever the button is not on screen. */
+#logBtn{display:none;}
+@media (min-width:1560px){
+  #logBtn{display:inline-block;}
+  /* Put away: the panel and both of its homes leave the layout rather than
+     being emptied, so the third column goes with it and the plot column
+     takes the 320 px back. */
+  #app.nolog #fLogHome,#app.nolog #fLogHost{display:none;}
+}
+/* All-registers grid on the SPI tab. Eight to a row, each row labelled with the
+   register it starts at, so an address is found by reading down the labels and
+   across - which is how the register maps are laid out on paper. Monospace and
+   fixed width so a value that differs from its neighbours is visible without
+   reading any of them. Cells past the end of the bank keep their place in the
+   grid but carry no box, so the last row stops where the bank does instead of
+   showing eight boxes of which two mean nothing. */
+#s_grid{margin:6px 0 4px;}
+/* The result line and the base toggle share a row, the toggle on the right
+   where it sits under the last column of the grid rather than over the labels. */
+#s_gridFoot{display:flex;align-items:center;gap:8px;}
+#s_gridFoot #s_gridRes{flex:1;min-width:0;}
+#s_gridFoot #s_base{flex:none;width:58px;height:26px;padding:0;font-size:13px;
+                    letter-spacing:.04em;}
+.rgrow{display:grid;grid-template-columns:54px repeat(8,1fr);gap:2px;margin-bottom:2px;}
+.rglb{color:var(--fg-4);font:12px/22px Consolas,'DejaVu Sans Mono',monospace;
+      text-align:right;padding-right:6px;}
+.rgc{background:var(--cell-bg);border:1px solid var(--rule-2);border-radius:3px;color:var(--accent);
+     font:12px/20px Consolas,'DejaVu Sans Mono',monospace;text-align:center;min-width:0;}
+.rgc.off{background:transparent;border-color:transparent;}
+/* The cells are editable: WRITE ALL sends what is in them, so they are the input
+   as well as the readout. Sized to the widest thing either base puts in one -
+   three digits in decimal. */
+input.rgc{width:100%;height:22px;padding:0;-moz-appearance:textfield;}
+input.rgc:focus{border-color:var(--accent);outline:none;background:var(--cell-bg-f);}
+input.rgc.bad{border-color:var(--err);color:var(--err);}
+/* The one register the single READ / WRITE above just touched. Red, and only
+   ever on one cell: the point is to find it in a grid of 54 or 64, so a second
+   one marked would defeat it. Different from .bad, which marks a cell that
+   cannot be written rather than the one that just was. */
+input.rgc.hot{color:var(--hot-fg);border-color:var(--dgr-bd);background:var(--hot-bg);font-weight:600;}
+.sec.wo .k{color:var(--wo-dim);}
+/* A key to a mark, not a line of the page. Dim, so it reads as the footnote
+   it is and not as one more thing the tab is telling you to do. */
+.legend, .legendLive{color:var(--fg-4);font-size:13px;}
+/* Put on and taken off by lockEq() as the firmware version becomes known. */
+.gone{display:none!important;}
+.sec:first-child{border-top:0;padding-top:0;margin-top:0;}
+/* Button rows. Not .g: that grid is minmax(0,1fr) 96px 96px for label + two
+   inputs, so a button dropped into .c1/.c2 came out 96 px wide and pinned to
+   the right. These share the full width instead. */
+.btnrow{display:flex;gap:8px;margin-bottom:6px;}
+/* A button row that follows a field row needs air above it - WRITE and READ
+   were sitting 2 px under the value they act on, which reads as part of the
+   same row. The other two button rows follow a .sec heading, which brings
+   its own margin and rule, so this is scoped to the adjacency rather than
+   applied to .btnrow and then taken back off the others. Before
+   .btnrow.preset on purpose: that one carries its own margin and the two
+   have equal specificity, so order is what settles it. */
+.g + .btnrow{margin-top:8px;}
+/* A preset row sits under the fields it fills rather than above the next
+   section, so it needs the gap on the other side. */
+.btnrow.preset{margin:4px 0 2px;}
+/* A field kept for its value and not for the eye. !important because every
+   row shape this can land on sets its own display. */
+.hidRow{display:none!important;}
+/* Switches that belong together, on one line. Flex rather than the .g grid:
+   the grid's two 96 px control slots are the wrong shape for three labels of
+   different lengths, and these need to sit next to their own words. */
+.g.ckrow{display:flex;flex-wrap:wrap;gap:2px 14px;}
+.g.ckrow > label{margin:0;}
+/* Two switches sharing one byte (t:'b'): band | first bit | second bit. The
+   same three tracks on every such row, so the boxes line up down a section
+   however long each band's name - which a flex row could not do, every pair
+   starting wherever its own label ended. Under ?eng=1 the command number takes
+   a line of its own under the name, so it cannot widen the first track. On a
+   phone the name goes above the pair.
+
+   The first box's track is a fixed width - wide enough for "Background
+   update" - which is what lines the second box up across rows. The second is
+   only as wide as its words and nothing is stretched, so there is no dead space
+   after the last label and a click beside the words is not a click on the box. */
+.g.bitrow{grid-template-columns:minmax(0,7.5em) minmax(0,11em) auto;gap:2px 10px;
+          justify-content:start;}
+.g.bitrow > .lb{grid-column:1;}
+.g.bitrow > label.ck{margin:0;justify-self:start;}
+/* The name keeps its marks (the bolt, the lock) beside it; only the command
+   number drops to the second line, whichever order they were added in. */
+.g.bitrow > .lb{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:2px;}
+.g.bitrow .lb .engno{order:1;flex-basis:100%;margin-left:0;}
+/* stack: the name on a line of its own and the boxes under it - a stage
+   heading, with or without boxes. Bold, so it reads a
+   level above the rows; inStage rows sit indented under it. Both use one wider
+   name column, so the boxes line up across the stages. */
+.g.bitrow.stack, .g.bitrow.inStage{grid-template-columns:minmax(0,8.5em) minmax(0,11em) auto;}
+.g.bitrow.stack > .lb{grid-column:1 / -1;color:var(--fg);font-weight:600;}
+.g.bitrow.stack > label.ck:first-of-type{grid-column:2;}
+.g.bitrow.stack.stageNext{margin-top:8px;}
+.g.bitrow.inStage > .lb{padding-left:15px;}
+@media (max-width:480px){
+  .g.bitrow{grid-template-columns:minmax(0,11em) auto;}
+  .g.bitrow > .lb{grid-column:1 / span 2;}
+  .g.bitrow.stack, .g.bitrow.inStage{grid-template-columns:minmax(0,11em) auto;}
+  .g.bitrow.stack > label.ck:first-of-type{grid-column:1;}
+}
+.btnrow>button{flex:1 1 0;min-width:0;}
+.bres{margin-top:6px;line-height:1.5;}
+.bres .ok{color:var(--ok);} .bres .err{color:var(--err);} .bres .chg{color:var(--chg);}
+.radarwrap{position:relative;margin-bottom:8px;}
+/* The plot border doubles as the presence indicator: it lights up green
+ * whenever the module reports a person, so the state is readable from across
+ * the room without finding the readout. */
+canvas#radar{background:var(--plot-bg);border:1px solid var(--plot-bd);border-radius:6px;
+             display:block;width:100%;
+             transition:border-color .15s ease, box-shadow .15s ease;}
+canvas#radar.present{border-color:var(--pres-val);
+                     box-shadow:0 0 16px var(--pres-glow);}
+/* Middle overlay column, left of Check FW / Clear State: frame counter on top
+ * of the presence readout. Same 102 px total height as the button stacks
+ * either side, so all three line up along the bottom of the plot. */
+.midStack{position:absolute;right:172px;bottom:14px;width:148px;display:flex;
+          flex-direction:column;gap:6px;align-items:stretch;}
+#frameBox{height:36px;box-sizing:border-box;line-height:24px;padding:5px 8px;
+          border:1px solid var(--border-3);background:var(--surface);border-radius:4px;
+          color:var(--accent);font-size:16px;text-align:center;font-family:monospace;
+          letter-spacing:1px;box-shadow:0 2px 6px var(--shadow);}
+#frameBox.stale{color:var(--fg-4);}
+/* Presence readout. Colour is the indicator, with a third state so a dead
+ * link cannot masquerade as "nobody here". */
+#humanBox{height:80px;
+          display:flex;flex-direction:column;align-items:center;
+          justify-content:center;gap:2px;border-radius:4px;
+          border:1px solid var(--border-3);background:var(--surface);
+          box-shadow:0 2px 6px var(--shadow);
+          transition:background .15s ease, border-color .15s ease;}
+#humanBox .hl{font-size:20px;letter-spacing:1px;color:var(--fg-4);}
+#humanBox .hv{font-size:20px;font-weight:bold;line-height:1;color:var(--fg-5);
+              font-family:monospace;letter-spacing:1px;}
+#humanBox.on {background:var(--pres-bg);border-color:var(--pres-bd);}
+#humanBox.on  .hl{color:var(--pres-lb);}
+#humanBox.on  .hv{color:var(--pres-val);}
+#humanBox.nd {background:var(--nd-bg);border-color:var(--pending);}
+#humanBox.nd  .hl{color:var(--note-amber);}
+#humanBox.nd  .hv{font-size:20px;color:var(--warn);}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;
+       padding:10px 12px;margin-bottom:8px;}
+/* The basic settings - Application to Mag floor - tinted apart from the rest. */
+.panel.basic{background:var(--basic-bg);border-color:var(--basic-border);}
+.g .lb.bold{font-weight:bold;}
+.title{font-size:24px;color:var(--accent);
+       margin-bottom:8px;display:flex;justify-content:space-between;}
+.title .cmd{color:var(--fg-6);font-weight:normal;font-size:16px;}
+/* ?eng=1 only: the command / PID beside a heading or a row label. Dim, so it
+   reads as a reference and not as part of the name. */
+.engno{color:var(--fg-6);font-weight:normal;font-size:12px;margin-left:6px;}
+input,select{background:var(--surface-2);color:var(--accent);border:1px solid var(--border-2);
+             border-radius:4px;padding:5px 8px;font-size:16px;
+             font-family:inherit;}
+/* One settings row: label on the left, then up to two fixed control slots.
+ * A control tagged .wide spans both slots. Explanatory text lives in title=
+ * tooltips so the panel stays short. */
+.g{display:grid;grid-template-columns:minmax(0,1fr) 96px 96px;
+   gap:3px 6px;align-items:center;padding:3px 0;}
+.g .lb{grid-column:1;color:var(--fg-2);font-size:16px;line-height:1.25;}
+.g .c1{grid-column:2;} .g .c2{grid-column:3;}
+/* A typed box's range, in the free column beside it (Tracker Optimization). */
+.g .rngHint{grid-column:3;color:var(--fg-4);font-size:14px;white-space:nowrap;}
+/* ?Eng=1: a fourth column for each row's send-this-one button (engSendAdd()).
+   A box row keeps its own columns; its buttons sit inside each box's label. */
+body.eng .g:not(.bitrow){grid-template-columns:minmax(0,1fr) 96px 96px 24px;}
+.g > .engSend{grid-column:4;}
+/* The plot's 2x dots are ?Eng=1 only. Hidden, the box stays unticked. */
+body:not(.eng) #bigDotBox{display:none;}
+.engSend{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+  padding:0;font:bold 14px/1 sans-serif;cursor:pointer;
+  background:var(--act-bg);color:var(--fg);border:1px solid var(--border-3);border-radius:3px;}
+.engSend:hover{background:var(--act-bg-h);}
+.engSend.busy{background:var(--busy);color:var(--on-accent);}
+label.ck .engSend{margin-left:6px;}
+/* The level echo under the two sensitivity labels. A level is ten rows of a
+   published table, so showing which row is on screen costs a line and saves
+   a lookup; it is derived, never typed into, and says nothing while the level
+   reads back as "-". */
+.g .lb .lvx{display:block;font-size:12px;color:var(--fg-3);line-height:1.5;
+  font-variant-numeric:tabular-nums;}
+.g .lb .lvx.amber{color:var(--note-amber);}
+.g .wide{grid-column:2 / span 2;}
+/* Spans the label column as well, for option text that will not fit even the
+   two control columns. The label goes above it on its own row. */
+.g .full{grid-column:1 / span 3;}
+.g select,.g input[type=number]{width:100%;min-width:0;}
+.g .note{grid-column:1 / span 3;color:var(--note-amber);font-size:14px;line-height:1.35;
+         margin-top:2px;}
+/* Checkbox rows: the box sits in the label cell. */
+.ck{display:flex;align-items:center;gap:6px;cursor:pointer;}
+.ck input[type=checkbox]{width:18px;height:18px;flex:none;margin:0;
+                         accent-color:var(--accent);cursor:pointer;}
+.ck.dis{opacity:0.45;cursor:not-allowed;}
+.ck.dis input[type=checkbox]{cursor:not-allowed;}
+.g .c2.ck{font-size:16px;color:var(--fg-2);}
+.sep{border-top:1px solid var(--border);margin:7px 0 4px;}
+/* A number box holding a value the module set and this page cannot - outside the
+   box's own range or step. It keeps the value; the outline says it is Custom. */
+.customVal{outline:2px solid var(--note-amber);outline-offset:-1px;}
+button{background:var(--btn);color:var(--on-accent);border:none;border-radius:4px;
+       padding:8px 18px;font-size:16px;cursor:pointer;font-family:inherit;}
+button:hover{background:var(--btn-h);}
+/* Lives in #bar, alongside the connection state and the NACK count. It used
+ * to sit on top of Check FW in the button stack, where a readout the size of
+ * a button, one gap away from a button, simply read as a second button. Up
+ * here it is unmistakably a reading, and the stack below holds nothing but
+ * things you can press. */
+#fwDisplay{background:var(--surface-2);border:1px solid var(--border-3);color:var(--fg-3);
+           padding:2px 10px;border-radius:4px;font-size:16px;
+           font-family:monospace;letter-spacing:1px;white-space:nowrap;}
+#fwDisplay.match{color:var(--ok);border-color:var(--ok);}
+#fwDisplay.partial{color:var(--warn);border-color:var(--warn);}
+#fwDisplay.bad{color:var(--err);border-color:var(--dgr-bd);}
+#fwDisplay.scene{color:var(--accent);border-color:var(--accent);}
+#fwBtn{background:var(--fwbtn-bg);color:var(--fwbtn-fg);font-size:16px;font-weight:bold;
+       height:36px;box-sizing:border-box;padding:0 10px;
+       border:1px solid var(--fwbtn-bd);border-radius:4px;
+       cursor:pointer;font-family:inherit;
+       box-shadow:0 2px 6px var(--shadow);}
+#fwBtn:hover{background:var(--fwbtn-bg-h);}
+#fwBtn.busy{background:var(--busy);}
+/* Attention cues for the one button that unlocks the rest. The ring grows
+ * and fades rather than blinking on and off - it reads as 'look here'
+ * without the strobe of a hard flash, and it sits outside the button so the
+ * label stays legible. Cleared by applyLocks() as soon as Check FW has been
+ * pressed, whether the read succeeded or not. */
+@keyframes fwPulse{
+  0%,100%{box-shadow:0 2px 6px var(--shadow), 0 0 0 0 var(--attn-ring);}
+  50%    {box-shadow:0 2px 6px var(--shadow), 0 0 0 7px var(--attn-ring-0);}
+}
+#fwBtn.attn{border-color:var(--warn);color:var(--warn);animation:fwPulse 1.6s ease-out infinite;}
+@media (prefers-reduced-motion:reduce){ #fwBtn.attn{animation:none;} }
+#bar .hint{color:var(--warn);font-weight:bold;}
+#bar .hint.off{display:none;}
+/* ENTER and READ on Settings carry no styling of their own, exactly as the
+   pair on CMD and on Algorithm do. One rule for all six buttons is why
+   those two tabs have never drifted; a rule of its own here is what made
+   this pair a different size and a different colour from every other. */
+#enter:disabled,.actBtn:disabled,#fwBtn:disabled,
+button[onclick^="oneClick"]:disabled{
+       opacity:0.4;cursor:not-allowed;}
+#enter.pending{background:var(--pending);}
+#enter.sending{background:var(--busy);}
+/* Two columns filling the card, with the destructive one across the bottom,
+   so the five buttons leave no hole where a sixth would have gone. */
+.mcuActs{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.mcuActs > .danger{grid-column:1 / span 2;}
+/* #sysHost is a flex row; with one child left it has to be told to fill the
+   card, or the grid sizes itself to the widest label and leaves the rest of
+   the 434px empty. Capped, because in the stacked layout the card is as wide
+   as the page and two 600px buttons would not read as buttons. */
+#sysHost .mcuActs{flex:1;max-width:460px;}
+/* System card only: the width comes from the grid column. Scoped here because
+   .actBtn is also the plot's Nearest / flip buttons and the SPI READ buttons,
+   which are not in a grid and keep their fixed width. */
+.mcuActs > button{width:auto;}
+/* Shared look for the four action buttons — they sit in either stack
+ * (Clear State lives on the right, under Check FW). */
+.actBtn{width:148px;height:36px;box-sizing:border-box;
+        background:var(--act-bg);color:var(--fg);border:1px solid var(--border-4);
+        border-radius:4px;padding:0 8px;font-size:16px;
+        font-weight:bold;cursor:pointer;font-family:inherit;
+        box-shadow:0 2px 6px var(--shadow);}
+.actBtn:hover{background:var(--act-bg-h);}
+.actBtn.danger{background:var(--dgr-bg);border-color:var(--dgr-bd);color:var(--dgr-fg);}
+.actBtn.danger:hover{background:var(--dgr-bg-h);}
+.actBtn.busy{background:var(--busy);color:var(--on-accent);}
+.actBtn.on{background:var(--pres-bg);border-color:var(--pres-bd);color:var(--pres-fg);}
+.actBtn.on:hover{background:var(--pres-bg-h);}
+/* A field with two states and a name of its own: the button says which state
+ * it is in, in the control column, the same green as an action that is on. */
+.tglBtn{width:100%;box-sizing:border-box;padding:4px 8px;font-size:16px;
+        font-weight:bold;background:var(--act-bg);color:var(--fg);
+        border:1px solid var(--border-4);}
+.tglBtn:hover{background:var(--act-bg-h);}
+.tglBtn.on{background:var(--pres-bg);border-color:var(--pres-bd);color:var(--pres-fg);}
+.tglBtn.on:hover{background:var(--pres-bg-h);}
+/* Locked with its row: dimmed like every other disabled control. */
+.tglBtn:disabled{opacity:0.4;cursor:not-allowed;}
+#sysCard{display:block;}         /* the action buttons' home at every width */
+#sysHost{display:flex;gap:6px;flex-wrap:wrap;}
+/* The per-slot readout table. In the wide layout it takes the plot's
+ * bottom-left corner. Everywhere else it sits in
+ * #outHost, directly under the plot, together with the presence strip: the
+ * readouts belong with the fan they describe, and at 16 px text there is no
+ * width left to float them over it. */
+#outBox{border:1px solid var(--border-3);border-radius:4px;background:var(--outbox-bg);
+        padding:6px 8px 5px;box-shadow:0 2px 6px var(--shadow);}
+/* outCol stacks the Nearest toggle above the box so the button sits outside the
+ * frame. #nearHost holds no button except in the wide layout; :empty collapses
+ * it (and its flex gap) so the box position is unaffected elsewhere. */
+#outCol{display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
+#outCol > #outBox{align-self:stretch;}
+#nearHost:empty{display:none;}
+/* Nearest filters what the plot draws — it never reaches the module — so it
+ * belongs on the plot, not in the System card with the module actions. This
+ * slot holds it in the bottom-left corner; the wide layout keeps its own
+ * placement just above the readout frame, which is in that corner already.
+ * The 14 px bottom offset is the one draw() assumes when it reserves room
+ * under the fan for the overlays. */
+#nearOnPlot{position:absolute;left:12px;bottom:14px;max-width:calc(100% - 268px);}
+#nearOnPlot:empty{display:none;}
+#nearGroup{display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;}
+/* Narrower than Nearest, because their labels are shorter. The corner is
+ * capped at what the zoom box on the other side leaves free; if the three of
+ * them stop fitting in that, #nearGroup wraps to a second row rather than
+ * running under the zoom, and draw() measures the overlays so the plot makes
+ * room for it. */
+.flipBtn{width:auto;padding:0 12px;}
+/* Plot zoom — how far the fan reaches, nothing else. It is a view control,
+ * like Nearest, so it lives on the plot: bottom-right at every width except
+ * the wide layout, which drops it into .midStack directly under the Human
+ * box. Never sent to the module. */
+/* 232, not the 190 this was: the 2x box lives inside #rangeBox and the select
+   is flex:1;min-width:0, so a narrower slot would silently squeeze the range
+   list instead of overflowing. #nearOnPlot's cap above is this plus the same
+   two 12 px gutters and must move with it. */
+#rangeOnPlot{position:absolute;right:12px;bottom:14px;width:232px;}
+#rangeOnPlot:empty{display:none;}
+#rangeBox{display:flex;align-items:center;gap:6px;height:36px;
+          box-sizing:border-box;padding:0 8px;border:1px solid var(--border-3);
+          background:var(--surface);border-radius:4px;
+          box-shadow:0 2px 6px var(--shadow);}
+#rangeBox .rgl{color:var(--fg-4);font-size:16px;letter-spacing:1px;flex:none;}
+#rangeBox select{flex:1;min-width:0;padding:2px 4px;}
+/* Inside the existing 36 px row on purpose. draw() measures the overlays and
+   reserves room under the fan for them, so a taller box here shrinks the plot
+   to pay for itself. */
+#rangeBox .dsl{color:var(--fg-4);font-size:14px;flex:none;display:flex;
+               align-items:center;gap:3px;cursor:pointer;}
+#rangeBox .dsl input{margin:0;}
+.radarwrap > #outCol{position:absolute;bottom:14px;left:172px;right:332px;}
+#outHost > #outCol{margin-bottom:8px;}
+/* Under the plot the frame counter and the presence box turn from a vertical
+ * stack into one horizontal strip as wide as the Output box below it. */
+#outHost > .midStack{position:static;flex-direction:row;width:auto;
+                     height:44px;gap:8px;margin-bottom:8px;}
+#outHost > .midStack #frameBox{flex:none;width:160px;height:44px;
+                               line-height:32px;}
+#outHost > .midStack #humanBox{flex:1;height:44px;flex-direction:row;
+                               justify-content:center;gap:12px;}
+/* Frame # lives in .midStack unless the wide layout moves it in here. */
+#outBox .ofr{display:none;}
+#outBox .oh{font-size:16px;color:var(--accent);
+            margin-bottom:4px;}
+/* Above the box it is a compact strip rather than a full-width stack button. */
+#nearHost .actBtn{width:auto;height:30px;padding:0 14px;font-size:16px;
+                  letter-spacing:0;}
+/* The gate table is the readout table's second half, so every rule below
+   names both. Writing them as #outTab-only and giving #rgTab a short set of
+   its own is exactly what went wrong the first time: it inherited the font and
+   nothing else, so the headings kept the browser's centred default while the
+   figures took its left-aligned one, and the two rows read as misaligned.
+
+   Its own heading gets a little air above it; nothing else differs. */
+#rgTab,#outTab{width:100%;border-collapse:collapse;font-family:monospace;font-size:16px;}
+#rgBox > .oh{margin-top:6px;}
+/* The four readings share the row evenly. Left to itself the browser sizes
+   each column to its own content, so Dist(cm) takes half again what Mag does
+   and three rows of figures are harder to compare down the column than they
+   need to be.
+
+   Percentages rather than table-layout:fixed. This box is a different width
+   in each layout - it sits between two overlays on the plot when the window
+   is wide and takes the full column when it is not - and fixed would clip
+   Hidden(255) in the narrow one rather than let that column take what it
+   needs. A percentage is a preference: even when there is room, and it gives
+   way when there is not. */
+#rgTab th:first-child,#outTab th:first-child{width:24%;}
+#rgTab th:not(:first-child),#outTab th:not(:first-child){width:15%;}
+#rgTab th,#outTab th{color:var(--fg-4);font-weight:normal;font-size:16px;
+           text-align:center;padding:0 0 2px;}
+#rgTab td,#outTab td{color:var(--accent);text-align:center;padding:1px 0;
+           border-top:1px solid var(--rule-2);}
+#rgTab td.rl,#outTab td.rl,#outBox .rl{color:var(--fg-2);text-align:left;
+                          font-family:sans-serif;font-size:16px;}
+/* The ONLY reason a row is dimmed: the Nearest filter is on and this is not the
+ * chosen row. Slot validity is not styled — the State column already spells out
+ * Empty / Check / Birth / Hidden, and greying on top of that meant a row stayed
+ * grey after the filter was switched off. Beats the td.rl colour by carrying one
+ * more type selector. */
+#outTab tr.dim td{color:var(--fg-6);}
+#outBox .ofr{align-items:center;gap:8px;margin-top:4px;
+             padding-top:4px;border-top:1px solid var(--rule-2);}
+#outBox #outFrame{color:var(--accent);font-family:monospace;font-size:16px;}
+
+/* ===========================================================================
+   The settings column, two points smaller.
+
+   Everything in #colL is a labelled row read at arm's length on a phone or
+   across a desk, so it does not need the 16 px the plot side does - that size
+   is for reading the radar from across the room, and it stays there. Two
+   points off the type, and the paddings that set the row pitch come down with
+   it: the column is long, so what costs vertical space is the number of rows,
+   and a row is type plus padding.
+
+   Scoped to #colL rather than applied to the shared rules, because .actBtn,
+   input and select are also the plot's own overlays - Nearest, the flips, the
+   RANGE box - and those are the ones that must not shrink. The id in each
+   selector also puts these above the unscoped rules wherever they overlap, so
+   nothing here depends on where it sits in the file.
+   =========================================================================== */
+#colL{font-size:14px;}
+#colL .panel{padding:8px 10px;margin-bottom:6px;}
+/* The panel heading, on one line.
+   .title is a flex row with space-between, so the two spans sit side by side
+   until they do not fit and the text inside them wraps instead. At 20 px and
+   14 px with the shared 1 px letter-spacing, CUSTOMER CONTROL PANEL and PRESS
+   ENTER TO APPLY measure about 311 and 191 px in the default sans - 502 px in
+   a column that gives them 438 - which is why PANEL sat on a line of its own.
+   17 px and 12 px at half the letter-spacing come to about 413 px, and the
+   25 px of slack is what stops a different default sans putting it back over.
+   nowrap so it cannot wrap again: there is room for it, and a pixel of
+   overflow would be the better failure of the two. */
+#colL .title{font-size:17px;margin-bottom:6px;}
+#colL .title .cmd{font-size:12px;}
+#colL .title span{white-space:nowrap;}
+/* Not scaled with the rest. .sec was 13 px against 16 px body text - smaller
+   than what it introduces, which worked because 13 px is still a comfortable
+   read. Holding that ratio against 14 px body text gave 12 px, and a heading
+   that small stops announcing anything: WRITE / READ and SINGLE REGISTER W/R
+   are what tell you which half of a tab you are looking at. Level with the body
+   text instead - uppercase, the accent colour and the rule above it are what
+   make it a heading, not its size. */
+#colL .sec{font-size:14px;margin:8px 0 3px;padding-top:6px;}
+/* The reset has to be repeated at this weight. .sec:first-child clears the
+   margin, padding and rule for the first heading in a panel - there is
+   nothing above it to be separated from - but it is two classes, and the
+   rule above is an id and a class, so the scaled spacing came back and put
+   14 px of nothing above every panel's first section. The border stays
+   cleared by the original rule, which nothing here overrides. */
+#colL .sec:first-child{margin-top:0;padding-top:0;}
+#colL .g{padding:2px 0;}
+#colL .g .lb{font-size:14px;}
+#colL .g .note{font-size:12px;}
+#colL .g .c2.ck{font-size:14px;}
+#colL input,#colL select{font-size:14px;padding:3px 6px;}
+#colL .ck input[type=checkbox]{width:16px;height:16px;}
+#colL .hint{font-size:13px;}
+#colL .sep{margin:5px 0 3px;}
+  /* The ones that carry a height as well as a size. ENTER is half of a pair,
+     and a rule naming one of two buttons would make them different heights;
+     both take #colL button below, as every ENTER/READ pair does.
+   The System card's five and Check FW come down with it. They are pressed
+   deliberately, one at a time, and 28 px is still well past the 24 px a
+   pointer target wants; what they were buying at 32 was blank space in a
+   column that is short of it. The plot's own .actBtn overlays - Nearest, the
+   two flips - are untouched: these rules are scoped to #colL for exactly
+   that. */
+#colL .actBtn{font-size:13px;height:28px;}
+#colL #fwBtn{font-size:13px;height:28px;}
+/* Same type, less box. The height was three lines of 1.25 plus 7 px of
+   padding top and bottom - about 65 px. At 1.1 the three lines still have
+   air between them at this size, and 4 px of padding is enough to keep the
+   text off the border: about 53 px, and the type is untouched. min-height
+   comes down with it or it would simply hold the old size. */
+/* 4 px of side padding, and the row's gap down to 4: the longest single word
+   on the bar is Optimization at 72.2 px, and a fifth of the row was offering
+   68.8. Now 74.4. A word cannot break, so a couple of pixels here is the
+   difference between a wrapped label and one that spills over its button. */
+#colL #tabs button{font-size:13px;padding:4px 4px;line-height:1.1;min-height:48px;}
+/* Own size, so inheritance does not reach them. The ENTER/READ pairs and the
+   0xF3 switch rows would otherwise be the only 16 px left in the column.
+     Below #colL .actBtn and #colL #tabs button on specificity, so those keep
+     the sizes set above. ENTER and READ take this one, together. */
+#colL button{font-size:14px;padding:6px 14px;}
+#colL .f3row{font-size:14px;}
+
+/* ===========================================================================
+   Wide layout (>= 1280 px): a narrow settings column on the left and the
+   radar plot filling the rest on the right, with the presence readout
+   sitting on the plot itself.
+
+   The cut-off is a window width, not a device: a PC window dragged narrow
+   gets the single-column layout, which is the intended behaviour. Below the
+   cut-off nothing is width-capped — the plot, the readouts and the cards all
+   track the window — and relayout() keeps the readouts under the plot rather
+   than over it.
+   =========================================================================== */
+@media (min-width:1280px){
+  #app{display:flex;align-items:flex-start;gap:10px;}
+  #colL{order:1;width:460px;flex:none;}
+  #colR{order:2;flex:1;min-width:0;position:sticky;top:10px;}
+  .radarwrap{margin-bottom:0;}
+  /* The readout table takes the plot's bottom-left corner, and the frame
+     counter moves into it — .midStack is left holding just presence.
+     Measured from both edges rather than given a width: the log column below
+     takes its width out of this one, and a fixed 560 px then ran the table out
+     over the presence box and off the plot. */
+  .radarwrap > #outCol{left:16px;right:222px;width:auto;}
+  #outBox .ofr{display:flex;}
+  #frameBox{display:none;}
+  /* Presence moves to the plot's bottom-right corner. Text size is the same
+     as everywhere else - phone and desktop read identically. */
+  .midStack{right:16px;width:190px;}
+  #humanBox{height:96px;}
+}
+
+/* ===========================================================================
+   Third column (>= 1600 px): the frame log down the right-hand edge.
+
+   Its own column rather than a band under the plot, so neither one takes
+   height from the other and the log is a full screen tall — long enough to
+   read a burst of gaps without scrolling. Sticky like the plot, so both stay
+   put while the settings column is scrolled.
+
+   A second, wider cut-off because this column is paid for out of the plot's
+   width: 460 for the settings, 320 here and the gaps leave the plot around
+   760 px, close to what it already had at the two-column cut-off. Taking the
+   column at 1280 instead left the plot at 440 and the readout table on top of
+   the presence box. Between the two cut-offs the log stays in the settings
+   column and is reached by scrolling, as it is on a phone.
+
+   1560 rather than a round 1600 because a media query reads the viewport, not
+   the monitor: a maximised window on a 1600 px screen reports about 1583 once
+   the scrollbar is taken out, so a 1600 cut-off would never fire on the screen
+   it was named after.
+   =========================================================================== */
+@media (min-width:1560px){
+  /* Bottom aligned with the settings column, not with the window.
+     #app is align-items:flex-start, so every column takes its own height;
+     align-self:stretch opts this one back into the row's height, which is
+     the tallest column - the one holding the Customer Control Panel. It was
+     calc(100vh - 120px) before, a screen tall whatever stood beside it, so
+     on most windows the log ran on well past the panel it sits next to.
+
+     Sticky goes with the fixed height: an item stretched to the row has no
+     travel to stick through. The cost is that on a settings column taller
+     than the window the log scrolls away with it instead of staying put.
+     The log's own scrolling is unaffected - #fLog keeps flex:1 1 0. */
+  #fLogHost{order:3;width:320px;flex:none;display:flex;align-self:stretch;}
+  #fLogHost > .panel{display:flex;flex-direction:column;flex:1;
+                     min-height:0;min-width:0;margin-bottom:0;}
+  #fLogHost #fLog{flex:1 1 0;height:auto;min-height:0;}
+  /* The longest line the log writes - a counter reset - does not fit a 320 px
+     column, and nowrap turned that into a horizontal scrollbar under every
+     line. Wrap instead, with the continuation indented past the timestamp so a
+     wrapped line still reads as one record rather than two. */
+  #fLogHost #fLog div{white-space:normal;padding-left:14ch;text-indent:-14ch;}
+}
+/* The tabs size themselves with flex:1 1 0 and no floor: equal shares of one
+   row are the row, whatever the labels say and however many there are. */
+/* 0xF3 tab. One switch per row across the whole panel, so a label reads on one
+   line - .g would have put them in a column two 96 px control slots short of
+   the width, for two control slots these rows do not use. */
+.f3row{padding:3px 0;color:var(--fg-2);font-size:16px;line-height:1.25;}
+.f3row .bit{color:var(--fg-6);font-family:monospace;}
+.f3row b{color:var(--accent);font-weight:normal;}
+/* A fixed mode's shape: shown, and not yours to edit. */
+.f3lock{opacity:.55;}
+
+/* Raw XY: four range gates, six readings each. Monospace and right-aligned -
+   these are read down a column, not across as prose.
+
+   xm and ym are one complex reading per gate - in phase and quadrature - not
+   a position. The gate is what says where the return came from. */
+#rawGrid{display:grid;grid-template-columns:34px repeat(6,1fr);gap:2px 4px;
+         font-family:monospace;font-size:14px;margin:6px 0;}
+#rawGrid .rh{color:var(--fg-4);text-align:right;font-size:13px;}
+#rawGrid .rl{color:var(--fg-2);text-align:left;font-family:sans-serif;font-size:13px;}
+#rawGrid .rv{color:var(--accent);text-align:right;}
+#rawGrid .rd{color:var(--note-amber);text-align:right;}
+#rawBadge.ok{color:var(--accent);} #rawBadge.no{color:var(--fg-4);}
+</style></head>
+<body>
+<h1>KW307</h1><span class="sub">24 GHz radar &middot; WiFi dashboard<span id="verTag"></span></span>
+<button id="themeBtn" aria-pressed="false" onclick="toggleTheme()" title="Dark theme. Press for the light one.">&#9680;</button>
+<div id="bar">
+  <span class="st" id="st">&#9679; Connecting...</span>
+  <span class="st" id="rate">&ndash;</span>
+  <span class="hint" id="fwHint">Check FW to unlock the FW 2.11 items</span>
+  <span id="fwDisplay">v?.?.?</span>
+  <span>NACK:</span><b id="nk">0</b>
+  <button id="logBtn" class="on" aria-pressed="true" onclick="toggleLog(this)" title="Show or hide the frame log. Display only - it keeps recording while hidden.">Log &#9662;</button>
+</div>
+
+<!-- Two columns on a wide screen, one on a narrow one. colR is first in the
+     DOM so the narrow layout keeps today's order (plot, ENTER, cards); the
+     wide layout puts colL first with `order`. -->
+<div id="app">
+<div id="colR">
+<div class="radarwrap">
+  <canvas id="radar"></canvas>
+  <!-- Bottom-left slot for the Nearest filter. relayout() parks it here at
+       every width except the wide layout, which has #nearHost instead. -->
+  <span id="nearOnPlot" class="ovl">
+    <!-- View controls: none of these reach the module or join the ENTER
+         batch, and each one undoes itself when pressed again. -->
+    <span id="nearGroup">
+      <button id="nearBtn" class="actBtn" aria-pressed="false" onclick="toggleNear(this)"
+              title="Show only the closest target on the plot. The readout table still lists every target, with the ones not plotted dimmed. Changes the display only.">Nearest</button>
+      <button id="flipHBtn" class="actBtn flipBtn" aria-pressed="false" onclick="toggleFlip(this,'h')"
+              title="Mirror left / right">&#8596;</button>
+      <button id="flipVBtn" class="actBtn flipBtn" aria-pressed="false" onclick="toggleFlip(this,'v')"
+              title="Mirror top / bottom">&#8597;</button>
+    </span>
+  </span>
+  <!-- Bottom-right slot for the plot-zoom dropdown; the wide layout moves the
+       control itself under the Human box instead. -->
+  <span id="rangeOnPlot" class="ovl">
+    <div id="rangeBox" title="How far the plot reaches, in metres. Display only - nothing is sent to the radar.">
+      <span class="rgl">Range</span>
+      <select id="i_fan" onchange="fanChanged()">
+        <option value="100">1m</option><option value="200">2m</option>
+        <option value="300">3m</option><option value="400">4m</option>
+        <option value="500">5m</option><option value="600">6m</option>
+        <option value="700">7m</option><option value="800">8m</option>
+        <option value="900">9m</option><option value="1000" selected>10m</option>
+        <option value="1100">11m</option><option value="1200">12m</option>
+        <option value="1500">15m</option><option value="2000">20m</option>
+      </select>
+      <!-- Inside #rangeBox rather than beside it: relayout() reparents the BOX
+           between .midStack and #rangeOnPlot at the wide breakpoint, so
+           anything placed outside it gets left behind at that width. -->
+      <label class="dsl" id="bigDotBox" title="Draw the detected targets at twice the size. Display only - nothing is sent to the radar.">
+        <input type="checkbox" id="i_bigdot" onchange="toggleBigDots(this)">2x</label>
+    </div>
+  </span>
+  <!-- One container, in reading order for the two-column grid it becomes in the
+       System card. The pairing is not padding: Check FW is what unlocks Clear
+       State, and Save is what Initial reloads. Factory Reset takes the last row
+       on its own because it is the destructive one, not because five is odd. -->
+  <div class="mcuActs ovl">
+    <button id="fwBtn" class="attn" onclick="readFw(this)" title="Read the radar firmware version. Items that need FW 2.11 stay locked until it reports 2.11 or later.">Check FW</button>
+    <button id="clearBtn" class="actBtn" onclick="mcuAction(this,'clearstate')" title="Forget the targets being tracked right now and start detecting again. Settings are kept.">Clear State</button>
+    <button class="actBtn" onclick="mcuAction(this,'radarinit')" title="Restart the radar with its saved settings. Takes a moment, and anything applied but not saved is lost.">Initial</button>
+    <button class="actBtn" onclick="mcuAction(this,'save')" title="Save the current settings so they survive a power cycle.">Save Setting</button>
+    <button class="actBtn danger" onclick="mcuAction(this,'reset')" title="Erase saved settings, back to factory defaults">Factory Reset</button>
+  </div>
+  <!-- Readout table, with the Nearest toggle stacked above it (outside it).
+       #nearHost is empty except in the wide layout, where relayout() parks the
+       button here; empty it collapses, so the box keeps its position. -->
+  <div id="outCol" class="ovl">
+  <span id="nearHost"></span>
+  <div id="outBox">
+    <div class="oh">Output (presence + targets)</div>
+    <table id="outTab">
+      <tr><th></th><th>Mag</th><th>Dist(cm)</th><th>Ang(deg)</th><th>Spd</th><th>State</th></tr>
+      <tr><td class="rl">Moving 0</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td class="rl">Moving 1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td class="rl">Stationary 0</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+    </table>
+    <!-- The near stationary gates, when the selected mode carries them.
+         Hidden until one arrives, and hidden again the moment a frame without
+         them does: a table of dashes that never fills teaches nothing, and
+         removing exactly that from the customer's view is why this is here
+         rather than on the Demo page.
+
+         A gate is a distance bin, not a target. Nothing in this table has been
+         through grouping or a tracker, which is what the heading is for. -->
+    <div id="rgBox" hidden>
+      <div class="oh">Stationary range gates</div>
+      <!-- SIX columns, matching the table above it exactly, with the last one
+           empty: the widths are percentages, so five columns would share the
+           row differently from six and the two tables would step out of line
+           down the right-hand side. A gate has no state to report - it is a
+           distance bin, not a slot - so the column that carries State above
+           is simply blank here. -->
+      <table id="rgTab">
+        <tr><th></th><th>Mag</th><th>Dist(cm)</th><th>Ang(deg)</th><th>Spd</th><th></th></tr>
+        <tr><td class="rl">RG 0</td><td>-</td><td>-</td><td>-</td><td>-</td><td></td></tr>
+        <tr><td class="rl">RG 1</td><td>-</td><td>-</td><td>-</td><td>-</td><td></td></tr>
+        <tr><td class="rl">RG 2</td><td>-</td><td>-</td><td>-</td><td>-</td><td></td></tr>
+        <tr><td class="rl">RG 3</td><td>-</td><td>-</td><td>-</td><td>-</td><td></td></tr>
+      </table>
+    </div>
+    <div class="ofr"><span class="rl">Frame #</span><span id="outFrame">-</span></div>
+  </div>
+  </div><!-- /outCol -->
+  <div class="midStack ovl">
+    <div id="frameBox" class="stale" title="Counts the readings arriving from the radar.">no frame</div>
+    <div id="humanBox" class="nd">
+      <span class="hl">Presence</span><span class="hv">--</span>
+    </div>
+  </div>
+</div>
+<!-- Where the readout table goes when the plot is too narrow to host it. -->
+<div id="outHost"></div>
+</div><!-- /colR -->
+
+<div id="colL">
+
+<!-- Module actions. Empty (and hidden) in the narrow layout, where
+     relayout() parks the two button stacks back over the plot instead.
+     Outside the tabs: these are one-shot actions, not settings, and they stay
+     reachable whichever tab is open. -->
+<div class="panel" id="sysCard">
+  <div class="title"><span>System</span><span class="cmd">module actions</span></div>
+  <div id="sysHost"></div>
+</div>
+
+<!-- Tabs over the settings column. Each has its own ENTER and applies only
+     what it holds, so a tab nobody opened writes nothing. -->
+<div id="tabs">
+  <button id="tb_main"  class="on" onclick="showTab('main')">General Settings</button>
+  <button id="tb_cmd"   onclick="showTab('cmd')">Advanced Settings</button>
+  <button id="tb_param" onclick="showTab('param')">Tracker Optimization</button>
+)HTMLEOF"
+R"HTMLEOF(
+  <button id="tb_f3"    onclick="showTab('f3')">UART Output</button>
+</div>
+
+<div id="pane_main" class="tabpane on">
+
+<div class="panel">
+  <!-- ENTER sends, READ asks - the same pair the CMD and Algorithm tabs
+       carry. A read joined to a write can only ever say whether the write
+       landed, never what the module is actually set to. -->
+  <div class="btnrow">
+    <button id="enter" onclick="applyAll()">ENTER (APPLY SETTINGS)</button>
+    <button id="readSet" onclick="oneClick(this, readSettings)">READ (OVERWRITE)</button>
+  </div>
+  <div class="hint bres" id="setRes">ENTER writes every setting.<br>READ replaces the page with what the module holds.</div>
+</div>
+
+<div class="panel basic">
+  <div class="title"><span>Customer Control Panel</span><span class="cmd">press ENTER to apply</span></div>
+  <div class="g"><span class="lb bold">Application</span>
+    <select id="i_scene" class="wide" onchange="applyScenePreset();upd();draw(lastD);">
+      <option value="0">Outdoor</option>
+      <option value="1" selected>Office</option>
+      <option value="2">Desk</option>
+      <option value="3">Urinal</option>
+      <option value="4">Hand-dryer</option>
+    </select>
+  </div>
+  <div class="sep"></div>
+  <div class="g"><span class="lb">Detection range min/max (cm)</span>
+    <select id="i_rmin" class="c1" onchange="clampMinMax('min');upd();" title="Closest distance the radar reports, in cm.">
+      <option value="10">10</option><option value="50" selected>50</option>
+      <option value="100">100</option><option value="150">150</option>
+      <option value="200">200</option><option value="250">250</option>
+      <option value="300">300</option>
+    </select>
+    <select id="i_rmax" class="c2" onchange="clampMinMax('max');upd();" title="Furthest distance the radar reports, in cm. Must be greater than the minimum.">
+      <option value="100">100</option><option value="150">150</option>
+      <option value="200">200</option><option value="300">300</option>
+      <option value="400">400</option><option value="500">500</option>
+      <option value="600">600</option><option value="700">700</option>
+      <option value="800">800</option><option value="900">900</option>
+      <option value="1000" selected>1000</option><option value="1100">1100</option>
+      <option value="1200">1200</option>
+      
+    </select>
+  </div>
+  <div class="g"><span class="lb">Field of view/shrink</span>
+    <select id="i_fov" class="c1" onchange="upd()" title="Width of the detection area.">
+      <option value="100">10&deg;</option><option value="200">20&deg;</option><option value="300">30&deg;</option>
+      <option value="400">40&deg;</option><option value="500">50&deg;</option><option value="600">60&deg;</option>
+      <option value="700">70&deg;</option><option value="800">80&deg;</option><option value="900">90&deg;</option>
+      <option value="1000">100&deg;</option><option value="1100">110&deg;</option><option value="1200" selected>120&deg;</option>
+    </select>
+    <select id="i_shr" class="c2" onchange="upd()" title="How much the detection area narrows for every 100 cm of distance (0-16). Higher makes it tighter far away."></select>
+  </div>
+  <div class="g"><span class="lb">Gain</span>
+    <select id="i_gain" class="wide" onchange="upd()" title="Receiver gain, 0 to +21 dB.">
+      <option value="1">1: 0 dB</option>
+      <option value="2">2: +3 dB</option><option value="3">3: +6 dB</option>
+      <option value="4">4: +9 dB</option><option value="5" selected>5: +12 dB</option>
+      <option value="6">6: +15 dB</option><option value="7">7: +18 dB</option>
+      <option value="8">8: +21 dB</option>
+    </select>
+  </div>
+  <div class="g"><span class="lb">Motion sensitivity<small class="lvx">(Advanced&nbsp;+&nbsp;Tracker)</small></span>
+    <select id="i_mot" class="c1" onchange="upd()" title="-1 reacts to any motion at all, 0 picks up the slightest movement, 9 only obvious movement.">
+      <option value="-1">-1 any motion</option>
+      <option value="0">0</option><option value="1">1</option>
+      <option value="2" selected>2</option><option value="3">3</option>
+      <option value="4">4</option><option value="5">5</option>
+      <option value="6">6</option><option value="7">7</option>
+      <option value="8">8</option><option value="9">9</option>
+    </select>
+  </div>
+  <div class="g"><span class="lb">Stationary sensitivity<span id="sta_live" class="hidRow" title="On firmware 2.7.6, levels 7~9 are not fully kept through a power cycle or Initial. Select the level again and press ENTER after either."> &#9888;&#65039;</span><small class="lvx">(Advanced)</small></span>
+    <select id="i_sta" class="c1" onchange="upd()" title="0 detects someone sitting completely still, 9 only clearer signals.">
+      <option value="0">0</option><option value="1" selected>1</option>
+      <option value="2">2</option><option value="3">3</option>
+      <option value="4">4</option><option value="5">5</option>
+      <option value="6">6</option><option value="7">7</option>
+      <option value="8">8</option><option value="9">9</option>
+    </select>
+  </div>
+  <div class="g"><span class="lb">Presence hold time (Sec)</span>
+    <select id="i_hold" class="c1" onchange="upd()" title="How long presence stays on after the last detection.">
+      <option value="1">1</option><option value="2">2</option>
+      <option value="3">3</option><option value="4">4</option>
+      <option value="5">5</option><option value="11" selected>11</option>
+      <option value="20">20</option><option value="30">30</option>
+      <option value="60">60</option>
+    </select>
+  </div>
+  <div class="g"><span class="lb">Mag floor moving/stationary</span>
+    <select id="i_nf" class="c1" onchange="upd()" title="Minimum signal strength for a moving target. Higher = less sensitive.">
+      <option value="150">150</option><option value="200">200</option>
+      <option value="250">250</option><option value="350" selected>350</option>
+      <option value="450">450</option><option value="550">550</option>
+      <option value="650">650</option><option value="750">750</option>
+      <option value="850">850</option><option value="950">950</option>
+    </select>
+    <select id="i_ns" class="c2" onchange="upd()" title="Minimum signal strength for a stationary target. Higher = less sensitive.">
+      <option value="50">50</option><option value="100" selected>100</option>
+      <option value="150">150</option><option value="200">200</option>
+      <option value="250">250</option><option value="300">300</option>
+      <option value="350">350</option><option value="400">400</option>
+      <option value="500">500</option><option value="600">600</option>
+      <option value="5000">5000 (&asymp; off)</option>
+    </select>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="g"><span class="lb">Moving Counter Limit/Display Th.</span>
+    <select id="i_mvmax" class="c1" onfocus="this.dataset.prev=this.value" onchange="trkPair(this)" title="Frames a target is kept once lost (1~255)"></select>
+    <select id="i_mvshow" class="c2" onfocus="this.dataset.prev=this.value" onchange="trkPair(this)" title="Frames before a target is shown (&le; Counter Limit)"></select>
+  </div>
+  <div class="g"><span class="lb">Stationary Counter Limit/Display Th.</span>
+    <select id="i_stmax" class="c1" onfocus="this.dataset.prev=this.value" onchange="trkPair(this)" title="Frames a target is kept once lost (1~255)"></select>
+    <select id="i_stshow" class="c2" onfocus="this.dataset.prev=this.value" onchange="trkPair(this)" title="Frames before a target is shown (&le; Counter Limit)"></select>
+  </div>
+  <div class="g">
+    <label class="lb ck" title="Keep presence on while someone stands still close to the front of the module, inside the zone set beside this. Short dropouts then do not make presence flicker. It only ever adds presence, and only when nothing else has found anybody.">
+      <input type="checkbox" id="i_fsen" checked onchange="upd()">Presence hold zone (cm/deg)</label>
+    <input type="number" id="i_fsdist" class="c1" value="150" min="0" max="3276" onchange="upd()" title="How far out the zone reaches, in cm.">
+    <select id="i_fsfov" class="c2" onchange="upd()" title="How wide the zone is, edge to edge, in degrees. 40 is +/- 20 either side of straight ahead."></select>
+  </div>
+  <div class="g">
+    <label class="lb ck" title="How long a stationary target keeps being reported before its slot is released. Unticked: never released on time alone. It caps the reporting, not the sitting: a person who stays put is detected again on their next movement.">
+      <input type="checkbox" id="i_msten" onchange="upd()"><span>Stationary release time (s)<small class="lvx amber">(On = stationary dropped after time)</small></span></label>
+    <input type="number" id="i_mstsec" class="c1" value="20" min="0" max="1638" onchange="upd()" title="Time before a stationary target is released, in seconds.">
+    <span class="rngHint">(0~1638)</span>
+  </div>
+  <div class="g">
+    <label class="lb ck" title="Ignore repeating movement from equipment such as fans or air conditioning.">
+      <input type="checkbox" id="i_clen" onchange="upd()">Adv clutter rej (spd th / dev th)</label>
+    <input type="number" id="i_clspd" class="c1" value="300" min="0" max="1000" onchange="upd()" title="Movement threshold (0-1000). Higher ignores more.">
+    <select id="i_cldev" class="c2" onchange="upd()" title="Allowed drift in cm (0-50). Higher ignores more."></select>
+  </div>
+  <div class="g"><span class="lb">RangeGate IIR moving/stationary</span>
+    <input type="number" id="i_kdn" class="c1" value="0.15" min="0" max="0.999" step="0.01" onchange="upd()" title="How hard the reported distance of a moving target is smoothed. Lower is steadier and slower to follow a real move; higher follows the move and shows more jitter.">
+    <input type="number" id="i_kds" class="c2" value="0.15" min="0" max="0.999" step="0.01" onchange="upd()" title="The same, for a target the module has decided is standing still.">
+  </div>
+  <div class="sep"></div>
+  <!-- Three states, one control: a second control for the same setting on
+       another tab would let one undo the other silently. -->
+  <div class="g"><span class="lb">Power Mode<span class="cmd" title="Not saved - Normal again after a power cycle or Initial."> &#9889;</span></span>
+    <select id="i_pmode" class="wide" onchange="upd()" title="Power Down: radar off. PA Off: transmitter off, nothing detected.">
+      <option value="0">Power Down</option>
+      <option value="1" selected>Normal</option>
+      <option value="2">PA Off</option>
+    </select>
+  </div>
+  <div class="g">
+    <label class="lb ck" title="With nobody in the room, an empty slot reports the in-room noise floor in its mag instead of 0 - something to judge SNR against. A slot holding a target is unaffected.">
+      <input type="checkbox" id="i_rssi" onchange="upd()">Report noise floor</label>
+  </div>
+  <div class="g">
+    <label class="lb ck" title="Presence output pin: ticked, it follows the presence flag (default); unticked, it is held low. Not kept by Save Setting.">
+      <input type="checkbox" id="i_gpio" checked onchange="upd()">GPIO presence flag output<span class="cmd" title="Not saved - on again after a power cycle."> &#9889;</span></label>
+  </div>
+
+</div>
+
+<!-- The keys to the marks above, in a panel of their own. The lock's goes
+     (lockEq) once Check FW has found 2.11, as on Advanced Settings. -->
+<div class="panel">
+  <div class="legend">&#128274; needs FW &ge; 2.11</div>
+  <div class="legendLive">⚡ not kept by Save Setting - set it again after every power-up</div>
+  <div class="legendLive hidRow" id="staWarnKey">&#9888;&#65039; FW 2.7.6: Stationary sensitivity 7~9 is not fully kept through a power cycle or Initial</div>
+</div>
+
+</div><!-- /pane_main -->
+
+<!-- ==================================================================
+     TAB 2 — Advanced Settings, one ENTER for the page.
+
+     Built from CMD_TABLE by buildCmdTab(); ENTER and READ go through one SDK
+     setter / getter per item (ADV_GEN). Generating the controls rather than
+     writing ~35 of them as markup keeps this out of the copy of the page that
+     lives in flash.
+
+     0x01 FW version, 0x02 factory reset, 0x03 save, 0x36 park ref and 0x37 raw
+     xym are absent on purpose: they carry no adjustable payload and must never
+     ride a bulk apply. They keep their own buttons in the System card.
+     ================================================================== -->
+<div id="pane_cmd" class="tabpane">
+  <div class="panel">
+    <!-- ENTER sends, READ asks. Separate because a read joined to a write can
+         only ever say whether the write landed, never what the module is
+         actually set to. -->
+    <div class="btnrow">
+      <button id="enterCmd" onclick="oneClick(this, applyCmdTab)">ENTER (WRITE ALL)</button>
+      <button id="readCmd" onclick="oneClick(this, readCmdTab)">READ (OVERWRITE)</button>
+    </div>
+    <div class="hint bres" id="cmdRes">ENTER writes every item. READ replaces the page with what the module holds.</div>
+  </div>
+  <div class="panel" id="cmdHost"></div>
+
+  <!-- FW 2.11 and later, locked on 2.7.6.
+
+       2.7.6's command set ends at 0x38 and answers 0x39 / 0x3A STATUS_UNKNOWN,
+       so on a 2.7.6 module these are left out of ENTER and READ: an apply would
+       otherwise send commands it cannot take, and a READ would spend full
+       timeouts to report nothing.
+
+       Not live tunes, despite sitting under them: these two survive a re-init,
+       and CMD 0x03 keeps them across a power cycle. The separation here is
+       about which firmware can take them, not about how long they last. -->
+  <div class="panel">
+    <div class="sec" id="eqSec">&#9888; FW &ge; 2.11 &mdash; 0x32 / 0x33 / 0x39 / 0x3A</div>
+    <div id="gateHost"></div>
+    <div id="eqHost"></div>
+  </div>
+</div>
+
+
+<!-- ==================================================================
+     TAB 3 — Tracker Optimization, one ENTER for the page.
+
+     Built from PID_TABLE by buildParamTab(); ENTER and READ go through one SDK
+     setter / getter per item (TRK_GEN). Related fields sit two-per-row where
+     they pair naturally and one-per-row where they do not.
+
+     Every value is scaled to wire units before sending (Q15, CM10, DEG10), so
+     what goes out is what a read-back would compare against.
+     ================================================================== -->
+<div id="pane_param" class="tabpane">
+  <div class="panel">
+    <div class="btnrow">
+      <button id="enterParam" onclick="oneClick(this, applyParamTab)">ENTER (WRITE ALL)</button>
+      <button id="readParam" onclick="oneClick(this, readParamTab)">READ (OVERWRITE)</button>
+    </div>
+    <div class="hint bres" id="paramRes">ENTER writes every item. READ replaces the page with what the module holds.</div>
+  </div>
+  <div class="panel" id="paramHost"></div>
+</div>
+
+
+)HTMLEOF"
+R"HTMLEOF(
+<!-- ==================================================================
+     TAB 5 - CMD 0xF3, the composite output. UART edition only.
+
+     The descriptor is three bytes written with CMD 0x11 LEN=4, which
+     switches the mode and applies the descriptor in one atomic step.
+     Every 0xF3 frame carries the descriptor that actually took effect in
+     bytes [2..4], so a clamped write is visible on the very next frame
+     and the parser never has to trust what this page asked for.
+
+     Only the blocks that make up the 0xF0 body drive the plot - human_flag,
+     the two Fast trackers at full width, EPR nearest. Everything else is
+     measured so the offsets stay right, and skipped.
+     ================================================================== -->
+<div id="pane_f3" class="tabpane">
+  <div class="panel">
+    <div class="sec">Output Mode</div>
+    <!-- Named for what they do rather than for the frame they select. An
+         operator choosing how much the module should report has no use for a
+         command number, and this is the page's only control for it now that
+         the Advanced Settings tab has none.
+
+           Off                     the module stops sending. It keeps running.
+           Normal                  the standard frame, which is what the plot
+                                   and the readout are built for. 27 bytes.
+           Normal + speed          the same, plus how fast each moving target
+                                   is going and whether it is coming or going.
+                                   34 bytes, and the one most products want.
+           Normal + speed + RG     the same again, plus gates 0~3 of the
+                                   stationary band in full. 66 bytes - worth
+                                   switching into for a measurement and back
+                                   out of rather than sitting in.
+
+         Those four, and no more: this list is kw307_set_output()'s list, and a
+         mode a customer can reach on one and not the other is a support call
+         waiting to happen. RG, Parking and Advanced are still here behind
+         ?eng=1 - see OUT_MODES for why each left.
+
+         The options are built from OUT_MODES so the list and the bytes cannot
+         disagree, and the switches below follow the selection - see f3Snap(). -->
+    <div class="g"><span class="lb">Output Mode<span id="f3LockMark" class="cmd gone" title="Some modes need FW 2.11 or later - see below."> &#128274;</span><span class="cmd" title="Not saved - Normal again after a power cycle. Initial leaves it as it is."> &#9889;</span></span>
+      <select id="f3Mode" class="wide" onchange="f3Snap()"></select>
+    </div>
+    <div class="btnrow">
+      <button id="enterF3" onclick="oneClick(this, applyOut)">ENTER (APPLY OUTPUT)</button>
+    </div>
+    <div class="hint bres" id="f3Res">Nothing sent yet.</div>
+  </div>
+
+  <div class="panel" id="f3PanRange">
+    <div class="sec">Range gates</div>
+    <!-- Spelled out, because RG is the unfriendly part, not the idea: a range
+         gate is standard radar vocabulary and anyone integrating this module
+         meets it in the datasheet. The field names rg_lo / rg_hi are not - they
+         are what the byte is called, and they are back on the engineering
+         edition where the byte is what you are looking at.
+
+         The note now says why anyone would narrow this, which the old one did
+         not: the profile is the largest block in the frame, twelve gates by two
+         banks by four quantities is 192 B of it, and the LEN and airtime line
+         below moves as soon as the range does. -->
+    <div class="g"><span class="lb">Nearest / Farthest</span>
+      <select id="f3_lo" class="c1" onchange="f3Preview()"></select>
+      <select id="f3_hi" class="c2" onchange="f3Preview()"></select>
+      <span class="note">Range-gate profile only. Each gate is about 1 m, so a
+        narrower range means a shorter frame. Farthest below Nearest gives one
+        gate.</span>
+    </div>
+  </div>
+
+  <div class="panel" id="f3PanBlk">
+    <div class="sec">Blocks present</div>
+    <div id="f3BlkHost"></div>
+  </div>
+
+  <div class="panel" id="f3PanFmt">
+    <div class="sec">Detail</div>
+    <div id="f3FmtHost"></div>
+  </div>
+
+  <div class="panel" id="f3PanLive">
+    <div class="sec">Live</div>
+    <div class="hint bres" id="f3Live">No 0xF3 frame seen yet.</div>
+  </div>
+
+  <!-- The keys to the marks above, in a panel of their own. -->
+  <div class="panel">
+    <div class="legendLive gone" id="f3LockKey">&#128274; needs FW &ge; 2.11</div>
+    <div class="legendLive">⚡ not kept by Save Setting - set it again after every power-up</div>
+  </div>
+</div>
+
+<!-- Narrow-layout home for the frame log. Last in the settings column, so it
+     falls under whichever tab is open instead of above it: the panes are
+     siblings and a hidden one takes no space, so a log parked between two of
+     them sits above every pane that follows it. The wide layout moves the panel
+     out to #fLogHost beside the plot and leaves this empty. -->
+<div id="fLogHome">
+<div class="panel" id="fLogPanel">
+  <div class="sec" id="fLogHdr">Frame log</div>
+  <div id="fLog"></div>
+  <!-- Under the list, as it is in the C++ Builder app. Above it the button
+       sits between the heading and the first line, where it reads as a
+       filter on what follows rather than as an action on it. -->
+  <div class="btnrow" id="fLogFoot">
+    <button onclick="frameLog.clear()">Clear</button>
+  </div>
+</div>
+</div><!-- /fLogHome -->
+
+</div><!-- /colL -->
+
+<!-- Where the frame log goes in the wide layout: a column of its own down the
+     right-hand edge, outside both the settings column and the plot column.
+     Empty at every narrower width, where relayout() puts the panel back in the
+     settings column and it is reached by scrolling like everything else. -->
+<div id="fLogHost"></div>
+</div><!-- /app -->
+
+<script>
+const $=(i)=>document.getElementById(i);
+const v=(i)=>$(i).value;
+
+/* ?eng=1 - show the rows that are hidden from a customer.
+ *
+ * The hid flag in the control tables means engineering-only: the row is built,
+ * wired and sent exactly as it would be, it is simply not drawn. Hiding it is
+ * how this page avoids explaining a name that has no meaning outside the
+ * firmware, without taking the value out of the payload and creating a second
+ * path to the same bytes.
+ *
+ * The query string is the switch. No password:
+ * this is a page someone opens from a file, so anything in it is readable by
+ * anyone who opens it in an editor. What the switch buys is that a customer
+ * never meets the row by accident, which is the whole requirement.
+ *
+ * NOT every hidRow is a hid row. Some things are hidden because they are empty
+ * leftovers rather than because they are internal, and revealing those would
+ * just show an empty box - so this gates the hid flag only, at the point the
+ * row is built. Built-when-first-viewed tabs then need no second sweep. */
+const ENG = (function(){
+  /* Case-insensitive on the key, because ?Eng=1 is what a person types and
+     URLSearchParams matches keys exactly - a switch whose only documentation is
+     someone remembering it should not also require remembering its case. */
+  try {
+    for (const [k, val] of new URLSearchParams(location.search))
+      if (k.toLowerCase() === 'eng' && val === '1') return true;
+    return false;
+  } catch (e) { return false; }
+})();
+if (ENG) document.body.classList.add('eng');
+/* A protocol number shown beside a panel title, or nothing outside engineering
+ * mode. The number is what to look up in the command reference and what to say
+ * on a support call; it is not something the person operating this page types,
+ * and a customer reading "PID 0x08" beside a tick box learns only that there is
+ * something here they were not told about. The parameter rows already do this,
+ * by a different route - see the !CMD_GROUPS tag in buildParamTab(). */
+const pidTag = (txt)=> ENG ? '<span class="cmd">' + txt + '</span>' : '';
+/* The same idea for the two settings tabs: a section heading says which
+ * command(s) it writes - "cmd 0x17 & 0x32" - and a row says its own number
+ * where the heading alone would not tell you, as "(cmd 0x32)" or "(0x2C)".
+ * Engineering mode only, for the same reason as pidTag. */
+const engNo = (txt)=> ENG ? '<span class="cmd engno">' + txt + '</span>' : '';
+const engCmds = (list)=> 'cmd ' + list.map(n => '0x' + hex2(n)).join(' & ');
+/* Put a number after a row's own label, wherever mkField put that label. */
+function engLabel(row, txt){
+  if (!ENG) return;
+  const lb = row.querySelector('label.lb') || row.querySelector('span.lb');
+  if (lb) lb.insertAdjacentHTML('beforeend', engNo(txt));
+}
+
+/* Checkbox read/write. The seven booleans go on the wire as 1 / 0. */
+const ck =(i)=>$(i).checked ? 1 : 0;
+const setCk=(i,x)=>{ $(i).checked = !!x; };
+/* Fan-plot max range per scene index (cm), so the plot zoom matches the
+ * selected application. */
+const SCENE_FAN_CM = [1200, 1000, 300, 200, 200];
+/* How far the fan currently reaches. Seeded to 10 m, which is the module's boot
+ * range and the middle of the list either way. It was seeded higher while
+ * firmware booted at 20 m and a 10 m plot would have hidden the outer half of
+ * an unconfigured module; the 200 cm gate mode is retired, the bands end at
+ * 12 m, and there is no longer an outer half to hide. Thereafter owned by the
+ * RANGE dropdown on the plot, by the scene ENTER applies, and by the floor rule
+ * in update(). */
+let fanCm = SCENE_FAN_CM[1];
+/* The detection range as of the last /state that carried one, so repaintAll()
+ * can tell a change from a repeat. 0 = nothing seen yet, which makes the first
+ * state a change. */
+let rangeMaxSeen = 0;
+/* The detection range the plot draws solid when the module has reported none
+ * (no board, or before the first /state): what was last applied with ENTER, or
+ * the panel's as the page loaded. Not the live panel - that is what draw()
+ * shows dashed until ENTER. null until the first draw() takes the panel's. */
+let rangeApplied = null;
+/* The RANGE upd() widened from, while a pending max needs more than it: what
+ * the zoom goes back to once the max does. null = not widened. Dropped when the
+ * operator picks RANGE themself, and at ENTER, which sets it from the range. */
+let fanPreviewBase = null;
+/* Every value the RANGE dropdown carries, in order, and the only source of that
+ * list in the code. It stops at 12 m because the bands do: twelve gates at
+ * 100 cm, and nothing to draw past the last of them. */
+const FAN_STEPS_CM = [100,200,300,400,500,600,700,800,900,1000,1100,1200];
+/* The plot's reach for a detection range: up to the next whole metre. A 150 cm
+ * range wants the 2 m view and a 50 cm range the 1 m one, and a range already on
+ * a whole metre keeps it. setFan() then snaps that to a value the dropdown
+ * actually carries. */
+const fanForRange = (cm)=> Math.max(100, Math.ceil((cm || 0) / 100) * 100);
+function setFan(n){
+  /* Snap UP to a value the dropdown actually carries, so a floor that is not one
+   * of them (a 150 cm detection range, say) lands on the option above it rather
+   * than being handed to the select as a value it does not have — which the
+   * select ignores, silently keeping whatever it showed before.
+   *
+   * The list is one step per metre to 12 m and stops there, so a whole hundred
+   * is always an option again - but the snap stays, because it is the rule that
+   * is right rather than the arithmetic that happens to agree with it. */
+  const want = Math.max(100, n || 100);
+  fanCm = FAN_STEPS_CM.find(s => s >= want) || FAN_STEPS_CM[FAN_STEPS_CM.length - 1];
+  $('i_fan').value = fanCm;
+}
+/* The dropdown is the operator's, and it has no floor. Zooming inside the
+ * detection range is how you look closely at something near the module, and it
+ * costs nothing: both range gates are clamped to the fan in draw() (rOut and
+ * rIn are each Math.min(rMax, ...)), so a short zoom draws a correct picture of
+ * a smaller area rather than a broken picture of a large one. Targets beyond
+ * the rim are pinned to it the same way they always were.
+ *
+ * No floor at the detection range: snapping back up silently makes the
+ * dropdown look broken rather than governed. What the zoom does follow by
+ * itself is a CHANGE of detection range; see repaintAll(). */
+function fanChanged(){
+  fanPreviewBase = null;
+  setFan(parseInt(v('i_fan')) || fanCm);
+  draw(lastD);
+}
+
+/* Friendly scene names shown on the fwDisplay after ENTER. */
+const SCENE_NAMES = ['Outdoor', 'Office', 'Desk', 'Urinal', 'Hand Dryer'];
+
+/* fwDisplay current mode: 'fw' = show v?.?.? / version, 'scene' = show
+ * the last applied scene name. readFw() flips back to 'fw'; applyAll()
+ * flips to 'scene'. */
+let dispMode = 'fw';
+
+/* Per-scene panel defaults.
+ *   fov is in 0.1 deg (1200 = 120 deg); shr is whole degrees per 100 cm.
+ *   mot: 0 = most sensitive ... 9 = least.
+ *        -1 is one step below 0 and reacts to any motion at all. No preset
+ *        uses it; HAND_DRYER uses a tight force-stationary window instead. */
+const SCENE_PRESETS = [
+  /* 0 OUTDOOR    */ { gain:5, rmin:50, rmax:1200, fov:1200, shr:8, mot:6, sta:3, hold:5,  nf:350, ns:100,
+                       mvmax:32, mvshow:8, stmax:64, stshow:8, msten:0, mstsec:5,   fsen:0, fsdist:150, fsfov:40, clen:0, clspd:300, cldev:20 },
+  /* 1 OFFICE     */ { gain:5, rmin:50, rmax:1000, fov:1200, shr:8, mot:2, sta:1, hold:11, nf:350, ns:100,
+                       mvmax:32, mvshow:8, stmax:64, stshow:8, msten:0, mstsec:20,  fsen:1, fsdist:150, fsfov:40, clen:0, clspd:300, cldev:20 },
+  /* 2 DESK       */ { gain:3, rmin:50, rmax:200,  fov:1200, shr:8, mot:0, sta:0, hold:11, nf:350, ns:100,
+                       mvmax:32, mvshow:8, stmax:64, stshow:8, msten:0, mstsec:120, fsen:1, fsdist:150, fsfov:40, clen:0, clspd:300, cldev:20 },
+  /* 3 URINAL     */ { gain:3, rmin:10, rmax:150,  fov:600,  shr:5, mot:1, sta:1, hold:1,  nf:350, ns:100,
+                       mvmax:32, mvshow:8, stmax:64, stshow:8, msten:0, mstsec:60,  fsen:1, fsdist:150, fsfov:40, clen:0, clspd:300, cldev:20 },
+  /* 4 HAND_DRYER */ { gain:5, rmin:10, rmax:100,  fov:800,  shr:5, mot:-1, sta:1, hold:1, nf:200, ns:5000,
+                       mvmax:20, mvshow:2, stmax:20, stshow:2, msten:0, mstsec:10,  fsen:0, fsdist:150, fsfov:40, clen:0, clspd:300, cldev:20 },
+];
+
+/* Load a scene row into the panel. Fills local state only — nothing reaches
+ * the module until ENTER. */
+function applyScenePreset(){
+  const idx = parseInt(v('i_scene'))||0;
+  const p = SCENE_PRESETS[idx];
+  if (!p) return;
+  $('i_gain').value   = p.gain;
+  $('i_rmin').value   = p.rmin;
+  $('i_rmax').value   = p.rmax;
+  $('i_fov').value    = p.fov;
+  $('i_shr').value    = p.shr;
+  $('i_mot').value    = p.mot;
+  $('i_sta').value    = p.sta;
+  $('i_hold').value   = p.hold;
+  $('i_nf').value     = p.nf;
+  $('i_ns').value     = p.ns;
+  $('i_mvmax').value  = p.mvmax;
+  $('i_mvshow').value = p.mvshow;
+  $('i_stmax').value  = p.stmax;
+  $('i_stshow').value = p.stshow;
+  $('i_fsdist').value = p.fsdist;
+  $('i_fsfov').value  = p.fsfov;
+  $('i_mstsec').value = p.mstsec;
+  $('i_clspd').value  = p.clspd;
+  $('i_cldev').value  = p.cldev;
+  setCk('i_fsen',  p.fsen);
+  setCk('i_msten', p.msten);
+  setCk('i_clen',  p.clen);
+}
+/* The merged snapshot every repaint reads from. Frames and settings arrive on
+ * separate transports at very different rates, so neither one carries a whole
+ * picture on its own: a pushed frame overwrites the six frame fields 20 times a
+ * second, /state overwrites the panel once a second, and D is what they add up
+ * to. lastD stays an alias so the redraw-on-resize paths work unchanged.
+ * An empty D reads as "nothing known yet" - fwCode() and isLive() both fall
+ * through to it. */
+let D={}, lastD=null, polling=true, errs=0, timer=null, dirty=false;
+let ws=null, wsUp=false, stateTimer=null, stateSoon=null;
+
+/* performance.now() when a frame last arrived here. The board's own `age` field
+ * cannot cover a dead socket: if nothing is arriving then no new age is either,
+ * so the last small one would sit there looking live forever. See isLive(). */
+let lastFrameAt=0;
+
+/* The module silent on purpose, so the silence is not a fault: Output Mode set
+ * to Off from this page, or Power Down read back through the SDK getter by
+ * General Settings' ENTER verify or READ. The page holds the last frame on
+ * screen, the status line goes grey instead of red, and nothing repaints until
+ * frames come back - the first one that does (after HOLD_SETTLE_MS, so one
+ * already on its way cannot count) clears it. A module found silent any other
+ * way is still a fault. */
+let outOff = false, pwrDown = false, heldAt = 0;
+const HOLD_SETTLE_MS = 300;
+const held    = ()=> outOff || pwrDown;
+const heldWhy = ()=> outOff ? 'output off' : 'power down';
+/* The power mode General Settings just read back: 0 is Power Down. A read that
+ * did not answer for it changes nothing. */
+function notePower(S){
+  if (!S || S.powermode === undefined || S.powermode === null) return;
+  const down = (S.powermode === 0);
+  if (down && !pwrDown) heldAt = performance.now();
+  pwrDown = down;
+  if (pwrDown && wsUp) setSt('● Push (' + heldWhy() + ')','');
+}
+
+/* Where the endpoints live. The board serves this page, so it is always this
+ * origin; the .html's copy reads its Host box instead. /get and /f3
+ * are fetched through it - without this definition each of them threw
+ * a ReferenceError before sending anything, which genFetch() reported as
+ * "Read failed: no reply from board". */
+function base(){ return ''; }
+
+/* False when the board did not take it: /cmd unanswered, or "err" - which only
+ * a verb that checks its setter answers (antenna, see antSent). */
+async function postCmd(c){
+  let ok = false;
+  try{
+    const r = await fetch('/cmd',{method:'POST',headers:{'Content-Type':'text/plain'},body:c});
+    ok = r.ok && (await r.text()).trim() !== 'err';
+  }catch(e){}
+  refreshStateSoon();
+  return ok;
+}
+
+/* Display Th. no higher than the Counter Limit beside it (User Guide 4.7). A
+ * change that would put it above goes back to what that control held before -
+ * noted on focus, which a mouse pick and the arrow keys both come through. */
+const TRK_PAIR = { i_mvmax:'i_mvshow', i_mvshow:'i_mvmax', i_stmax:'i_stshow', i_stshow:'i_stmax' };
+function trkPair(e){
+  const o = $(TRK_PAIR[e.id]);
+  const lim = /max$/.test(e.id) ? e : o, show = (lim === e) ? o : e;
+  if (+show.value > +lim.value) {
+    e.value = (e.dataset.prev !== undefined) ? e.dataset.prev : o.value;
+    return;
+  }
+  e.dataset.prev = e.value;
+  upd();
+}
+
+/* Pull /state shortly after a write rather than waiting for the 1 Hz tick, so
+ * NACK and the mirror catch up while the operator is still looking at the
+ * button. Debounced because ENTER sends the whole panel as a batch and only the
+ * settled result is worth a request. */
+function refreshStateSoon(){
+  clearTimeout(stateSoon);
+  stateSoon = setTimeout(fetchState, 250);
+}
+
+function upd(){
+  dirty = true;
+  staBolt(lastD);
+  $('enter').classList.add('pending');
+  /* Show what this change means on the other two tabs straight away, so the
+   * correspondence is visible before ENTER rather than after it. */
+  mirrorSettings();
+  /* The plot shows a pending detection range dashed - draw() reads the panel.
+   * A max past the plot's reach widens RANGE to take it in, so the area before
+   * and the area after are both whole on the plot. Taking the max back inside
+   * the RANGE it was widened from puts that RANGE back. */
+  const pMax = parseInt(v('i_rmax'), 10);
+  if (!isNaN(pMax)) {
+    const need = fanForRange(pMax);
+    const base = (fanPreviewBase !== null) ? fanPreviewBase : fanCm;
+    if (need > base) { fanPreviewBase = base; setFan(need); }
+    else if (fanPreviewBase !== null) { setFan(fanPreviewBase); fanPreviewBase = null; }
+  }
+  draw(lastD);
+}
+
+/* Detection range min / max: keep min < max. If picking min crept past max,
+ * push max up to the first option above min; if picking max dropped below min,
+ * pull min down to the last option below max. Called by both selects before
+ * upd() - it was missing here, and the call threw before upd() could run. */
+function clampMinMax(changed){
+  const min = parseInt(v('i_rmin'));
+  const max = parseInt(v('i_rmax'));
+  if (min < max) return;
+  if (changed === 'min') {
+    const sel = $('i_rmax');
+    for (const o of sel.options) {
+      if (parseInt(o.value) > min) { sel.value = o.value; return; }
+    }
+  } else {
+    const sel = $('i_rmin');
+    let pick = null;
+    for (const o of sel.options) {
+      if (parseInt(o.value) < max) pick = o.value;
+    }
+    if (pick !== null) sel.value = pick;
+  }
+}
+
+/* ===== Advanced Settings and Tracker Optimization: the control tables =====
+ * Both tabs are generated from a table rather than written as markup. ~35
+ * controls of literal HTML would cost 10-15 KB in the copy of this page that
+ * lives in flash, and would have to be kept identical in two files by hand.
+ *
+ * Byte order, option lists and encodings follow the module's command
+ * reference rather than anything decided here.
+ *
+ * Field shapes:  n = number   c = checkbox   s = select(options)
+ * A field's value is always the raw byte the wire carries. */
+/* Both 2-bit fields carry the same index whenever the SDK wrote them, so the
+ * moving band's is the one kw307_set_dsp_gain() names. */
+function decDsp(b){ return (!b || !b.length) ? [undefined] : [(b[0] >> 2) & 3]; }
+
+/* 0x39 / 0x3A live outside CMD_TABLE on purpose. They need FW 2.11, and
+ * a row in that table would ride both the page ENTER and the page READ - which
+ * is exactly what an older module must not be sent. Own section, own ENTER, own
+ * READ; see the panel comment on the CMD tab.
+ *
+ * They are also the only rows on the tab that are not a byte payload: the SDK
+ * owns the mapping from mode / group / gain onto the register fields, so ENTER
+ * goes out through the verbs named in v: and READ comes back through dec(). */
+const EQ_TABLE = [
+  { c:0x3A, n:'DSP Gain', v:['dspgain'], dec:decDsp, f:[
+      {k:'dg', t:'s', lb:'Digital Gain', w:1, d:0, o:['1x (default)','2x','4x','8x'],
+       ti:'Needs FW ≥ 2.11. Digital gain, both bands. Taken after the filters, '
+        + 'so unlike Gain it cannot saturate the front end. Default 1x.'} ]},
+];
+
+/* Built on first view like the rest of the tab, and idempotent so showTab() can
+ * keep calling it. */
+function buildEqTab(){
+  /* Grouped: EQ_TABLE was laid out with everything else and this host stays
+   * empty. The function stays because three call sites want "make sure it
+   * exists, then lock it", and the locking half still applies. */
+  if (CMD_GROUPS) { lockEq(lastD); return; }
+  const host = $('eqHost');
+  if (!host) return;
+  if (!host.childElementCount) EQ_TABLE.forEach(c => {
+    const h = document.createElement('div');
+    h.className = 'sec';
+    h.textContent = '0x' + c.c.toString(16).toUpperCase().padStart(2,'0')
+                  + '  ' + c.n;
+    host.appendChild(h);
+    c.f.forEach(f => host.appendChild(mkField('x_' + c.c + '_' + f.k, f, null)));
+  });
+  /* Every time, including the first. mkField() hands back an enabled control,
+   * and before a connection there is no /state to come along and lock it - so
+   * the whole section sat open and clickable on a page that had never spoken
+   * to a module. Locked is the honest starting point: nothing has said these
+   * are safe to send yet. */
+  lockEq(lastD);
+}
+
+/* One ENTER for the section, one verb per field. There is no byte payload to
+ * build: the SDK call named in v: is what owns the mapping. */
+/* 0x39 / 0x3A are unusable until a version comes back saying they exist. Both
+ * halves of that matter: the controls are disabled so they cannot be set, and
+ * applyCmdTab / readCmdTab leave them out so nothing is sent or asked for. A
+ * 2.7.6 module answers STATUS_UNKNOWN to both, which the write path
+ * never reads - so an ungated ENTER would report two commands sent that the
+ * module had refused.
+ *
+ * Called from applyLocks() on every /state, and from buildEqTab() because the
+ * controls do not exist until the tab is first opened. */
+function eqUnlocked(d){ return fwAtLeast(d, FW_211); }
+/* HW Antenna - CMD 0x33 and Mag type, the gate:2 items - waits for 2.11.5,
+ * and stays shut below it under ?Eng=1 too: neither read, written nor picked. */
+function antUnlocked(d){ return fwAtLeast(d, FW_2115); }
+const gateOk = (it, d)=> (it.gate === 2) ? antUnlocked(d) : eqUnlocked(d);
+/* What the page says the item needs. HW Antenna's 2.11.5 is a special build,
+ * so it is named as one rather than by number. */
+const gateFw = (it)=> (it.gate === 2) ? 'special FW' : 'FW ≥ 2.11';
+
+function lockEq(d){
+  const lock = !eqUnlocked(d);
+  /* ?Eng=1 keeps the controls open before Check FW - lists can be looked
+     through and set - while ENTER and READ still leave them out and the lock
+     mark stays to say so. */
+  const shut = lock && !ENG;
+  const sec = $('eqSec');
+  if (sec) sec.classList.toggle('dis', shut);
+  /* Grouped, the warning is on the rows rather than on a section, so the rows
+   * are what dims. Does nothing on the per-command layout, where no row
+   * carries the class. */
+  document.querySelectorAll('.gated').forEach(r => r.classList.toggle('dis', shut));
+  /* The lock says "not yet". Once Check FW has reported a version new enough,
+   * the rows are live and the mark has nothing left to say - so it goes, and
+   * the key to it at the foot of the tab goes with it. Removed rather than
+   * dimmed: a symbol meaning "unavailable" sitting on a row that works is
+   * worse than no symbol at all. */
+  document.querySelectorAll('.lockMark, .legend')
+          .forEach(m => m.classList.toggle('gone', !lock));
+  /* Both lists: EQ_TABLE is the commands 2.7.6 does not have, and the gate:1
+   * rows of CMD_TABLE are the ones it has but which mean something else there. They are disabled the same way and skipped the same way. */
+  /* A tg:1 field's checkbox is hidden; the button beside it is what is
+   * pressed, so it takes the lock too. */
+  const off = (c)=> c.f.forEach(f => {
+    const e = $('x_' + c.c + '_' + f.k);
+    if (e) e.disabled = shut;
+    const b = $('x_' + c.c + '_' + f.k + '_btn');
+    if (b) b.disabled = shut;
+  });
+  EQ_TABLE.forEach(off);
+  CMD_TABLE.filter(c => c.gate).forEach(c => {
+    off(c);
+    const s = $('pre_sel_' + c.c);   /* its preset selector, HW Antenna's */
+    if (s) s.disabled = shut;
+  });
+  /* gate:2 over the top of that: its own version, no ?Eng=1 exception, and
+   * its marks stay until that version is read. */
+  const lock2 = !antUnlocked(d);
+  document.querySelectorAll('.gate2').forEach(r => {
+    r.classList.toggle('dis', lock2);
+    r.querySelectorAll('.lockMark').forEach(m => m.classList.toggle('gone', !lock2));
+  });
+  CMD_TABLE.filter(c => c.gate === 2).forEach(c => {
+    c.f.forEach(f => { const e = $('x_' + c.c + '_' + f.k); if (e) e.disabled = lock2; });
+    const s = $('pre_sel_' + c.c);
+    if (s) s.disabled = lock2;
+  });
+}
+
+const CMD_TABLE = [
+  /* wo: write-only — the firmware has no read case for it, so the read-back
+   * skips it rather than reporting a no-response every time.
+   *
+   * 0x05 is NOT one, though it was marked so: it reads back, and leaving it
+   * out of READ is what kept its preset and payload line on 20 Hz whatever
+   * the module ran at. */
+  { c:0x05, n:'Update Rate', nosave:1, eng:1,
+    /* kw307_set_update_rate() / kw307_get_update_rate(), SDK 2.17.6: the SDK
+     * takes the cycle, (total_frames, measured_frames); the page keeps three
+     * named rates, which the board sends as (0, 0), (20, 4) and (40, 4). Any
+     * other cycle reads back as Custom. ENTER moves the Moving threshold
+     * (Tracker) and Moving trackers' display (General) with it - see
+     * urateFollow(). */
+    f:[
+      {k:'rate', t:'s', lb:'Update Rate', lx:'(Display, Min Speed Sum)', w:1, d:0,
+       o:['20Hz (Default)','1Hz','0.5Hz'],
+       ti:'How often the module reports. At 1 Hz and 0.5 Hz it sleeps through '
+        + 'most of each cycle and reports once per cycle. A detected target '
+        + 'switches it to 20 Hz; it goes back to the cycle once the presence '
+        + 'hold time clears. Default 20 Hz. '
+        + 'Sets Tracker: Moving threshold and General: Moving trackers (display) '
+        + 'with it. Those two are kept by Save Setting and the rate is not: '
+        + 'saved at 1 Hz or 0.5 Hz, the module powers up at 20 Hz with the '
+        + 'cycle\'s values - ENTER 20 Hz here puts the 20 Hz ones back.'} ]},
+  /* CMD 0x10 Power Mode is not here. It is a Settings row now - all three
+     states, in the panel every build has, rather than two here and two
+     more over there disagreeing about which won. */
+  /* CMD 0x11 Output Mode is not here. It moved to the UART Output
+   * tab, where the one mode that needs more than a byte is configured - that
+   * tab writes the mode and the descriptor in one command, and a second
+   * control for the mode alone on this tab would have been a way to undo it
+   * by accident. UART edition only; the WiFi build has no such tab and no
+   * control for the output mode at all, which is correct for it: the ESP32
+   * owns the stream. */
+  { c:0x17, n:'Doppler Filter', f:[
+      /* GroupBox14's four rows: an Nd sits in column 2 of its HPF's row (p2),
+       * and each row shows the cutoff its registers work out to (hz). Table
+       * order is still the wire order — only the presentation is paired. */
+      /* Moving / Stationary, not Fast / Slow. The firmware calls these two
+         chains fast and slow after how quickly they respond; everywhere the
+         page shows a target it says moving or stationary, and one thing with
+         two names on one page is one thing too many. The keys, the wire order
+         and the registers are untouched - this is what the row is called. */
+      {k:'fk', t:'s', lb:'Moving HPF',     hz:'fh', d:3, o:['0','1','2','3','4','5','6','7']},
+      {k:'fn', t:'s', lb:'Moving Nd',      p2:1,    d:0, o:['Nd=0','Nd=1','Nd=2','Nd=3']},
+      {k:'fl', t:'n', lb:'Moving LPF',     hz:'fl', r:[0,255,1], d:128},
+      {k:'sk', t:'s', lb:'Stationary HPF', hz:'sh', d:7, o:['0','1','2','3','4','5','6','7']},
+      {k:'sn', t:'s', lb:'Stationary Nd',  p2:1,    d:2, o:['Nd=0','Nd=1','Nd=2','Nd=3']},
+      {k:'sl', t:'n', lb:'Stationary LPF', hz:'sl', r:[0,255,1], d:8} ]},
+  /* kw307_set_antenna(tx_mode, rx_mode, with_angle), SDK a35e031: the three as
+   * the module takes them, with no count in between. tx_mode 0 = TX1, 1 = TX1
+   * + TX2 (the module numbers them from 1; the SDK adds it). rx_mode 0~7 is
+   * the receiver mode and goes out as it is. Anything else is KW307_ERR_PARAM.
+   *
+   * The topology, from the SDK's table - what the board is, rather than which
+   * values it takes - is the selector heading these fields: it fills all four,
+   * and the selector names the one they match, Custom for none. Mag type goes with
+   * a topology rather than choosing one (q:1): another value there does not
+   * make the topology Custom. The entries are the SDK's lines, in its
+   * order, 1T1R configuration 2 sharing one with 2T3R / 4T3R: the same three
+   * values, so nothing read back could tell them apart.
+   *
+   * Mag type is PID 0x53 (kw307_set_mag_type()), not a byte of CMD 0x33, so
+   * pid: keeps it off the payload line. kw307_set_antenna() leaves it alone;
+   * editing either one moves the other here (updGen), one to one. 
+   * Its two values are named Type 1 / Type 2 (0 / 1 on the wire) and nothing
+   * more. */
+  { c:0x33, n:'HW Antenna', hw:1, gate:2,
+    pre:[ {lb:'1T1R (config 1)',         v:[0, 3, 0, 0]},
+          {lb:'1T1R cfg2 / 2T3R / 4T3R', v:[0, 1, 1, 1]},
+          {lb:'4T4R',                    v:[0, 0, 1, 1]},
+          {lb:'4T6R',                    v:[1, 0, 1, 1]} ],
+    f:[
+      /* Defaults are the SDK's 0 / 1 / true and Mag type 1 - the module's
+       * factory state (R99[1:0] = 01, rx_mode 1, angle on) - so ENTER on a
+       * fresh module is a no-op instead of a silent change. w:1 where the
+       * annotated options are wider than the 96 px control column. hid:1 - the
+       * selector above is the customer's control; the four show under ?Eng=1. */
+      {k:'tx', t:'s', lb:'TX mode', w:1, d:0, hid:1,
+       o:['0 (TX1)','1 (TX1+TX2)'], ov:[0,1]},
+      {k:'rx', t:'s', lb:'RX mode', d:1, hid:1,
+       o:['0','1','2','3','4','5','6','7'],
+       ti:'Receiver mode 0~7, sent as it is. Pick the topology above rather than '
+        + 'a number: 4T4R and 4T6R are 0, 2T3R and 4T3R 1, a single antenna '
+        + 'without angle 3.'},
+      {k:'wa', t:'c', tg:1, lb:'with_angle', d:1, hid:1,
+       ti:'ON: distance and angle (default). OFF: distance only.'},
+      {k:'mt', t:'s', q:1, pid:0x53, lb:'Mag type', w:1, d:1, hid:1,
+       o:['Type 1','Type 2'],
+       ti:'The magnitude algorithm, PID 0x53 (kw307_set_mag_type()). '
+        + 'The antenna write does not set it.'} ]},
+  /* No live: marker. All three bytes persist on FW 2.11; on 2.7.6 Byte[1] may
+     last the session only, which is not marked, because a warning that is
+     wrong more often than right is worse than none. */
+  { c:0x32, n:'HW Filter', gate:1, f:[
+      /* One byte, two switches: b0 = en_DCOC (R88[6]), b1 = en_swR_DCOC
+         (R89[5]). This was a single checkbox with cv:[3,0] - one tick moving
+         both bits, and a module holding a mixed pair reported as unshowable.
+         That matched an SDK which had one bool for the pair; the SDK now has
+         one call per bit, so the page follows.
+
+         A bit pair, the same t:'b' shape the two bands below use, and for the
+         same reason: applyCmdTab indexes c.f against payload bytes 1:1, so two
+         fields here would make CMD 0x32 a four-byte command.
+
+         NOT inverted, unlike the bands: their b1 is a bypass, which reads
+         backwards from "subtract the environment". Here a tick means the path
+         is on, which is what the SDK's kw307_en_background_subtraction() and
+         kw307_en_background_update() say. d:3 is the module's own default,
+         both on.
+
+         The first stage: both act on both bands, before the split, ahead of
+         the per-band switches below. */
+      {k:'dc', t:'b', lb:'First Stage', stack:1, d:3, mask:0x03, bits:[
+         {b:0x02, k:'swcap', lb:'Background Update',
+          ti:'Keeps the background estimate updating on both bands, on by '
+           + 'default. Same rule: both boxes off to measure something stationary.'},
+         {b:0x01, k:'hpf', lb:'Env Subtraction',
+          ti:'Subtracts the background on both bands - the normal path, on by '
+           + 'default. Untick BOTH boxes in this row to see a target that never '
+           + 'moves; either one left on is enough to remove it. Expect a '
+           + 'noisier baseline with them off.'}]},
+      /* Named for what they do rather than for the register field they land
+         in. Both were raw 0~3 spin boxes called eq1_hpf and R_BB, which told
+         an operator nothing; they are gain steps and are now labelled in dB.
+         The option index IS the wire value, so what goes out is unchanged and
+         the defaults are the same two numbers as before.
+
+         Baseband attenuator offers three of the four values the field accepts. That
+         is deliberate - the fourth has no dB step of its own - so 3 is not
+         reachable from this page. */
+      /* The wire value in front of the step it buys. These two are the pair
+         anyone tuning gain sets against the command reference, and the option
+         index IS the byte, so showing it costs nothing and saves a count. */
+      {k:'eq',  t:'s', lb:'Equalizer gain', w:1, d:1,
+       o:['0 (0dB)','1 (+6dB)','2 (+9dB)','3 (+12dB)']},
+      {k:'rbb', t:'s', lb:'Baseband attenuator', w:1, d:0,
+       o:['0 (0dB)','1 (-6dB)','2 (-12dB)']} ]},
+  { c:0x34, n:'Sel_fs', hw:1, f:[
+      {k:'fs', t:'s', lb:'Sampling Rate', w:1, d:1,
+       o:['4 kHz','2 kHz (Default)','1.6 kHz','1.3 kHz']} ]},
+  { c:0x35, n:'HPF EnByp', hw:1, live:1, f:[
+      /* One byte per band, two independent bits in it: b0 en_hpf, b1
+         en_bypass_hpf. Two checkboxes rather than a 0~3 list, because a list
+         reads as a progression and these are not one:
+
+            b0  the background estimate keeps tracking (ticked) or is held
+            b1  the output is passed raw (bit set) - which is the INVERSE of
+                subtracting the environment from it
+
+         The second checkbox says "Env subtraction" and carries inv:1, so a
+         tick CLEARS b1: turning bypass on is turning subtraction off, and the
+         label says the second. It is also the naming the SDK uses - kw307_set_moving_background() and
+         kw307_en_moving_env_subtraction().
+
+         Still ONE payload byte per band. See bitsRd(): applyCmdTab indexes
+         c.f against payload bytes 1:1, so four fields here would make this a
+         four-byte command.
+
+         The two bands are written out twice rather than shared, because
+         several tests lift CMD_TABLE out of the page and run it alone - a name
+         declared above it is not in scope there. */
+      {k:'hf', t:'b', lb:'Moving', d:1, mask:0x03, bits:[
+         {b:0x01, k:'upd', lb:'Background update',
+          ti:'Ticked (Update, default): the background estimate tracks the room, '
+           + 'so anything that stops moving is learnt and removed within a few '
+           + 'seconds. Unticked (Freeze): it is held, so an object that arrives '
+           + 'afterwards and stands still stays visible.'},
+         {b:0x02, k:'sub', lb:'Env subtraction', inv:1,
+          ti:'Ticked (default): the background estimate is subtracted - the '
+           + 'normal way to run. Unticked: the band reports the raw signal, '
+           + 'environment and all. Changing it steps the signal, which needs a '
+           + 'moment to settle.'}]},
+      {k:'hs', t:'b', lb:'Stationary', d:1, mask:0x03, bits:[
+         {b:0x01, k:'upd', lb:'Background update',
+          ti:'Ticked (Update, default): the background estimate tracks the room, '
+           + 'so anything that stops moving is learnt and removed within a few '
+           + 'seconds. Unticked (Freeze): it is held, so an object that arrives '
+           + 'afterwards and stands still stays visible.'},
+         {b:0x02, k:'sub', lb:'Env subtraction', inv:1,
+          ti:'Ticked (default): the background estimate is subtracted - the '
+           + 'normal way to run. Unticked: the band reports the raw signal, '
+           + 'environment and all. Changing it steps the signal, which needs a '
+           + 'moment to settle.'}]} ]},
+  /* One control, two orders, three bytes.
+   *
+   * "1st / 2nd order" is really the (en_hpf2, eq2_swR) pair; this offers the
+   * two combinations that have names (kw307_set_equalizer_order()).
+   *
+   * map: the selector carries a whole payload rather than one byte. READ
+   * matches the three bytes back against the same table, so a module holding
+   * anything else is reported as a combination this control cannot show, not
+   * rounded to whichever of the two is nearer. */
+  { c:0x39, n:'Equalizer order', hw:1, gate:1,
+    map:[ {v:1, b:[0,   85, 0]},
+          {v:2, b:[11, 170, 0]} ],
+    f:[
+      {k:'eq', t:'s', lb:'Equalizer order', w:1, d:2,
+       o:['1st Order','2nd Order'], ov:[1,2],
+       ti:'Analog equalizer order. Default 2nd Order.'} ]},
+];
+
+/* Encodings, straight off kw_algo_params[]. enc decides both the wire scaling
+ * and the byte count, so it is the one thing that must not be guessed. */
+const ENC = {
+  u8  : {len:1, to:v=>Math.round(v),          from:v=>v,        step:1,    min:0, max:255},
+  bool: {len:1, to:v=>v?1:0,                  from:v=>v,        step:1,    min:0, max:1},
+  i16 : {len:2, to:v=>Math.round(v),          from:v=>v,        step:1,    min:-32768, max:32767},
+  /* Truncate, not round: the firmware's own Q15 constants are written that way
+   * (0.1 x 32768 = 3276.8 is stored as 3276). Rounding agreed with the firmware
+   * on most of them and landed one off on the one whose default was 0.10, which
+   * is how the difference was found - that parameter, raw_xym IIR, is no longer
+   * on this page, but every Q15 default ending in a half still depends on it. */
+  q15 : {len:2, to:v=>Math.trunc(v*32768),    from:v=>v/32768,  step:0.01, min:0, max:0.999},
+  cm10: {len:2, to:v=>Math.round(v*10),       from:v=>v/10,     step:1,    min:0, max:3276},
+  deg10:{len:2, to:v=>Math.round(v*10),       from:v=>v/10,     step:1,    min:0, max:1800},
+  /* Line of sight: a switch whose wire value is an angle. The module has no
+     enable bit for it - it reads a zero wedge as "do not do this at all" - so
+     on is the default 4.0 degrees and off is 0, two bytes either way. That is
+     why it cannot be ENC.bool, which is one byte. to() is what a read-back
+     comparison measures the module's answer against, so the two numbers live
+     here rather than only in the verb. */
+  los : {len:2, to:v=>v?40:0,                 from:v=>v>0?1:0,  step:1,    min:0, max:1},
+};
+
+const PID_TABLE = [
+  /* RangeGate IIR went the same way, and for the same reason: 0x4A / 0x4B are
+   * the Settings panel's own row now, and a setting with a control on two tabs
+   * is a setting two people can disagree about.
+   *
+   * valid_th and max_count are gone from both tracker sections. They are the
+   * Settings panel's Moving and Stationary "Counter Limit / Display Th." rows -
+   * 0x2E / 0x2F and 0x29 / 0x2A - and a setting with a control on two tabs is a
+   * setting two people can disagree about. Settings owns them; what is left
+   * here is what only this tab offers. */
+  /* Said, not spelled. These labels were the firmware's own field names, which
+     is the right vocabulary next to the command reference and the wrong one on
+     a page whose other four tabs name a control by what it does. The > and the
+     # went with them - they mean nothing outside the C++ tool they came from.
+     The engineering edition has the field names back, with the one exception
+     of the steup / setup typo, which is fixed in both. */
+  { sec:'Stationary Tracker', i:[
+      {p:0x2C, k:'s_init', lb:'Confirm frames', e:'u8',  r:[1,32,1], d:3,
+       ti:'Consecutive frames a stationary target must be seen in before it is reported. Higher stops furniture and reflections being reported; lower reports someone who has just sat down sooner.'},
+      {p:0x20, k:'s_iir',  lb:'Smoothing', e:'q15', d:0.06,
+       ti:'How closely the reported position follows each new measurement. Lower holds the position steadier.'},
+      /* The end-point recorder's two, which had a section of their own. It
+         records where a target came to rest, which is what the stationary
+         bank is for - a heading of its own for one visible row was a heading
+         to read past. Max count stays hidden. */
+      {p:0x14, k:'e_dist', lb:'Match distance (cm)', e:'cm10', d:100,
+       ti:'How far a new sighting may be from where a stationary target was last seen and still count as the same target. Not a detection range: it is the radius inside which two readings are treated as one thing.'},
+      {p:0x33, k:'e_max',  lb:'Starting count', hid:1,   e:'u8', r:[0,255,1], d:64} ]},
+  /* GroupBox28 in its own order. Moved here from the Settings tab, which only
+   * had it because this tab did not exist yet. */
+  { sec:'Moving Tracker', i:[
+      {p:0x31, k:'f_init', lb:'Confirm frames', e:'u8',  r:[1,32,1], d:8,
+       ti:'Frames a new moving target\'s speed is added up over before it is reported. This is also the window Min speed sum is measured across.'},
+      {p:0x21, k:'f_iir',  lb:'Smoothing', e:'q15', d:0.30,
+       ti:'How closely the reported position follows each new measurement. Lower holds the position steadier.'},
+      {p:0x26, k:'f_sthn', lb:'Min speed', e:'i16', mn:0, d:250,
+       ti:'Slowest movement picked up as a moving target. Module units, where 500 is about 0.19 m/s.'},
+      {p:0x1A, k:'f_slim', lb:'Speed clip', e:'i16', mn:0, d:500,
+       ti:'Each frame\'s speed is capped at this before it is added up, so one spike cannot make a target on its own. It does NOT reject fast targets - they are still tracked, their speed is just reported at the cap. 0 = no cap.'},
+      /* fast_integrated_speed_th in the firmware - the sum, not the rate. */
+      {p:0x28, k:'f_ssum', lb:'Min speed sum', e:'i16', mn:0, d:2000,
+       ti:'Total the added-up speed must pass over Confirm frames for the target to be reported. 0 = no check.'} ]},
+  /* Line of sight. Not a tracker parameter as such - it runs before tracking,
+     on the candidates - but it decides what the trackers are ever offered, and
+     this tab is where parameters are written and read. A card of its own on
+     another tab would be a second path to one setting.
+
+     verb: written through los rather than the generic pid:, because the value
+     that means "on" is 40 and not 1. ENC.los holds both numbers so READ can
+     still compare. */
+  { sec:'Line of sight', i:[
+      {p:0x08, k:'los', lb:'Hide targets behind a nearer one', e:'los', d:1,
+       verb:'los',
+       ti:'On by default: a target standing directly behind a nearer one, on the '
+        + 'same bearing, is not reported - most of what comes back from it is '
+        + 'scatter off the nearer target. Clear it to see every candidate, for '
+        + 'instance to count two people in a queue as two. Clearing it also stops '
+        + 'the module rejecting reflections, so expect MORE targets than there '
+        + 'are people.'} ]},
+  { sec:'Field of view', i:[
+      {p:0x52, k:'fovmin', lb:'Minimum angle (deg)',  e:'deg10', d:20,
+       rv:[0,5,10,15,20,30,40,60,80,100,120,140,160,180]} ]},
+];
+
+/* ---- generation ------------------------------------------------------ */
+
+/* One labelled control. Returns the row element; the input carries id `id`. */
+function mkField(id, f, enc){
+  const g = document.createElement('div'); g.className = 'g';
+  /* Row tooltip. Only the fields that need a caveat carry one, so the rest
+   * stay as they were — the PID tag in the corner is enough for those. */
+  if (f.ti) g.title = f.ti;
+  const lb = document.createElement('span'); lb.className = 'lb';
+  lb.textContent = f.lb;
+  /* lx: a note under the label, as the sensitivity rows on General carry. */
+  if (f.lx) {
+    const x = document.createElement('small');
+    x.className = 'lvx'; x.textContent = f.lx;
+    lb.appendChild(x);
+  }
+  /* A live cutoff beside the label, the way GroupBox14 carries one. Filled by
+   * cmdDspEcho(); the id is the link between the two. */
+  if (f.hz) {
+    const z = document.createElement('span');
+    z.className = 'cmd'; z.id = 'hz_' + f.hz; z.textContent = '  —';
+    lb.appendChild(z);
+  }
+  g.appendChild(lb);
+  /* Two checkboxes, one payload byte. A .bitrow so the pair sits in fixed
+   * columns beside the band name, lined up with the rows above and below it;
+   * the band keeps the label column's colour and size. */
+  if (f.t === 'b') {
+    g.className = 'g bitrow' + (f.stack ? ' stack' : '');
+    f.bits.forEach(b => {
+      const w = document.createElement('label'); w.className = 'ck';
+      if (b.ti) w.title = b.ti;
+      const e = document.createElement('input'); e.type = 'checkbox';
+      e.id = bitId(id, b);
+      e.checked = bitOn(b, f.d);
+      e.addEventListener('change', updGen);
+      w.appendChild(e); w.appendChild(document.createTextNode(b.lb));
+      g.appendChild(w);
+    });
+    if (f.hid && !ENG) g.classList.add('hidRow');
+    return g;
+  }
+  let el;
+  if (f.t === 'c' && f.tg) {
+    /* tg: a button that says ON / OFF instead of a box to tick. The checkbox
+     * stays as the value's home - hidden, under the field's id - so ENTER,
+     * READ, labelOf() and wr() go on using .checked exactly as before; the
+     * button only flips it and shows it. A read-back sets .checked without a
+     * change event, which is why wr() calls tgSync() too. */
+    el = document.createElement('input'); el.type = 'checkbox';
+    el.checked = !!f.d; el.hidden = true;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tglBtn'; b.id = id + '_btn';
+    el.tgSync = ()=> { b.classList.toggle('on', el.checked);
+                       b.setAttribute('aria-pressed', String(el.checked));
+                       b.textContent = el.checked ? 'ON' : 'OFF'; };
+    b.addEventListener('click', ()=> { if (el.disabled) return;
+                                       el.checked = !el.checked;
+                                       el.dispatchEvent(new Event('change')); });
+    el.addEventListener('change', el.tgSync);
+    el.tgSync();
+    g.appendChild(b); g.appendChild(el);
+  } else if (f.t === 'c' || (enc && enc.len === 1 && f.e === 'bool')) {
+    el = document.createElement('input'); el.type = 'checkbox';
+    el.checked = !!f.d;
+    /* A checkbox reads better beside its own word than under a separate
+     * label, so the row label is dropped for this one shape. */
+    lb.textContent = ''; lb.className = 'lb ck';
+    const w = document.createElement('label'); w.className = 'lb ck';
+    w.appendChild(el); w.appendChild(document.createTextNode(f.lb));
+    g.replaceChild(w, lb);
+  } else if (f.t === 's') {
+    /* w: the option text does not fit a 96 px column. .g's grid is
+     * minmax(0,1fr) 96px 96px, so .wide spans both control columns and gives
+     * these 192 px — enough for the longest of them. Only usable on a field
+     * that has no partner in column 2. */
+    el = document.createElement('select'); el.className = f.w ? 'wide' : 'c1';
+    f.o.forEach((txt, ix) => {
+      const o = document.createElement('option');
+      o.value = f.ov ? f.ov[ix] : ix; o.textContent = txt;
+      el.appendChild(o);
+    });
+    el.value = f.d;
+  } else if (f.rv) {
+    /* rv: the pick-list spelled out, for steps that are not even. */
+    el = document.createElement('select'); el.className = 'c1';
+    f.rv.forEach(n => { const o = document.createElement('option');
+                        o.value = String(n); o.textContent = String(n); el.appendChild(o); });
+    el.value = f.d;
+  } else if (f.r) {
+    /* Numeric, but as a pick-list — see rangeOpts(). Every integer field in
+     * both tables carries a range, so this is the normal path and the number
+     * box below is only the fallback for anything that forgets one. */
+    el = document.createElement('select'); el.className = 'c1';
+    el.appendChild(rangeOpts(f.r[0], f.r[1], f.r[2], f.r[3]));
+    el.value = f.d;
+    if (el.value === '') el.selectedIndex = 0;
+  } else {
+    el = document.createElement('input'); el.type = 'number'; el.className = 'c1';
+    /* mn: a floor of the field's own, above what its encoding could carry. */
+    el.min  = (f.mn !== undefined) ? f.mn : (enc ? enc.min : 0);
+    el.max  = enc ? enc.max : 65535;
+    if (enc && enc.step !== 1) el.step = enc.step;
+    el.value = f.d;
+  }
+  el.id = id;
+  /* hid: in the DOM, holding a value, out of the layout.
+   *
+   * A class rather than the hidden attribute: .g sets display:grid, an author
+   * rule, which outranks the browser's own [hidden]{display:none} - so the
+   * attribute alone left the row on screen. The row goes rather than the
+   * control, so a checkbox takes its own label with it. */
+  if (f.hid && !ENG) g.classList.add('hidRow');
+  /* Not upd(): that lights the Settings tab's ENTER, and a change here has
+   * nothing to do with that page. Each tab's own button is marked instead, so
+   * "there is something unapplied" points at the page holding it. */
+  el.addEventListener('change', updGen);
+  if (el.type !== 'checkbox') g.appendChild(el);
+  return g;
+}
+
+/* CMD 0x31: 1 RX with angle is refused by the firmware (3.0.4+). One antenna
+ * cannot produce an angle, so the vendor antenna-mode sheet gives that pair no
+ * register value and the command is rejected WHOLE - taking any TX_NUM change
+ * riding in the same ENTER down with it, silently, since a raw cmd: send is
+ * fire-and-forget.
+ *
+ * So the option is taken away while with_angle is ON, rather than left
+ * selectable and refused later. The constraint shows at the moment it applies
+ * instead of surfacing afterwards as two fields that quietly went back.
+ *
+ * Called from three places because a select's value can move without a change
+ * event: the operator (updGen), a read-back (readCmdTab writes with wr()), and
+ * the first build. Deriving it from the two controls each time means there is no
+ * lock state to fall out of step. */
+/* The three composites: one choice on this panel standing for several values on
+ * the module. A read names the choice whenever the module sits on one - the SDK
+ * getters do the matching for Motion and Stationary, sceneFit() for Application
+ * - and shows Custom when it does not: the module has been tuned field by field.
+ *
+ * locks: whether Custom stops ENTER. None does now. ENTER skips an item on
+ * Custom and the module keeps its tuning; picking a choice is what replaces it. */
+const UNKNOWABLE = [
+  {id:'i_scene', lb:'Application',            locks:false},
+  {id:'i_mot',   lb:'Motion sensitivity',     locks:false},
+  {id:'i_sta',   lb:'Stationary sensitivity', locks:false},
+];
+const UNKNOWN = '';   /* the placeholder option's value */
+
+/* Put a control on Custom. The option is added on demand, so a page
+ * that never reads back never offers a choice nobody can mean.
+ *
+ * Everything that can reach this is a select. The any-motion tick was here too,
+ * an indeterminate checkbox, and a dash where a tick belongs reads as a fault
+ * rather than as a question - which is why it is now read from the wire
+ * instead. Nothing left has a third state to show. */
+function setUnknown(id){
+  const e = $(id);
+  if (!e.querySelector('option[value=""]')) {
+    const o = document.createElement('option');
+    o.value = UNKNOWN; o.textContent = 'Custom';
+    e.insertBefore(o, e.firstChild);
+  }
+  e.value = UNKNOWN;
+}
+const isUnknown = (id)=> $(id).value === UNKNOWN;
+
+/* ENTER sends the whole panel in one batch, so it cannot run while a row is
+ * showing "-". The two ways round that are both silent writes of something
+ * nobody decided: skip the row, and the module quietly keeps a setting the
+ * operator believes they just replaced; send a zero, and it quietly gets one.
+ * Greying the button instead makes the missing decision the operator's, which
+ * is whose it is - the module holds a combination, and only a person can say
+ * which level they meant by it. */
+
+function lockEnter(){
+  const pend = UNKNOWABLE.filter(u => u.locks && isUnknown(u.id));
+  const btn  = $('enter');
+  if (pend.length) {
+    btn.disabled = true;
+    btn.title = 'Pick a value first: ' + pend.map(u => u.lb).join(', ');
+  } else {
+    btn.disabled = false;
+    btn.title = '';
+  }
+  return pend;
+}
+
+/* Keeps the with_angle button's caption in step with its box. Nothing is
+ * locked here. */
+function syncAntennaLock(){
+  const wa = $('x_' + 0x33 + '_wa');
+  if (wa && wa.tgSync) wa.tgSync();
+}
+
+/* What a value MEANS on the control that holds it, for the report lines.
+ *
+ * "0x12 gain  was: 3  now: 5" is the wire talking, and it asks the reader to go
+ * and look up what 3 and 5 were - on a page whose whole job is to save them
+ * that trip. The option text is what they actually picked, so that is what the
+ * line should carry: "was: 3: +6 dB  now: 5: +12 dB", "now: Normal".
+ *
+ * Looked up by option value rather than by the control's current selection,
+ * because the control has already been overwritten by the time the row is
+ * built - `was` has to be resolvable after it stopped being true. Falls back to
+ * the number for anything with no label to give: a number box, or a value the
+ * select does not carry (which renderRead reports as "not shown" anyway). */
+function labelOf(id, val){
+  const e = $(id);
+  if (!e) return fmtNum(val);
+  if (e.type === 'checkbox') return val ? 'on' : 'off';
+  if (e.tagName === 'SELECT') {
+    const o = e.querySelector('option[value="' + val + '"]');
+    if (o && o.textContent.trim()) return o.textContent.trim();
+  }
+  return fmtNum(val);
+}
+
+
+
+/* Put a preset into the fields of one command. Writes controls and nothing
+ * else: the module hears about it when ENTER does, which is the whole point of
+ * a preset that can be read before it is sent.
+ *
+ * wr() covers both shapes here - the three numbers and the three checkboxes -
+ * so the preset is a plain list in payload order and stays that way if a field
+ * changes type. Marks the tab's own ENTER, the way editing a field does,
+ * because a filled-in preset is exactly as unapplied as a typed one. */
+/* Everything on this tab that is worked out from the fields rather than being
+ * one: the preset selector, and the cutoff
+ * beside each doppler row. wr() fires no change event, so whatever moves the
+ * fields from outside - READ, or the Settings mirror - calls this after.
+ *
+ * The selector names the preset the fields now match, judged on the fields
+ * the preset fills; an after:1 or q:1 field qualifies a preset rather than
+ * choosing one. No match shows as Custom, an option that exists only while it is true,
+ * rather than as a blank box or a preset that was not sent. */
+function cmdEchoAll(){
+  CMD_TABLE.concat(EQ_TABLE).forEach(c => {
+    if (!c.pre) return;
+    const sel = $('pre_sel_' + c.c);
+    if (!sel) return;
+    const now = c.f.map(f => parseInt(rd('x_' + c.c + '_' + f.k), 10) || 0);
+    const fits = (p)=> c.f.every((f, i) =>
+      f.after || f.q || p.v[i] === undefined || p.v[i] === now[i]);
+    /* The one picked stays while it still fits, rather than the first that
+       fits taking its place. */
+    const cur = c.pre[parseInt(sel.value, 10)];
+    const ix  = (cur && fits(cur)) ? c.pre.indexOf(cur) : c.pre.findIndex(fits);
+    let cu = sel.querySelector('option[value="cu"]');
+    if (ix >= 0) {
+      if (cu) cu.remove();
+      sel.value = String(ix);
+    } else {
+      if (!cu) {
+        cu = document.createElement('option');
+        cu.value = 'cu'; cu.textContent = 'Custom'; cu.disabled = true;
+        sel.appendChild(cu);
+      }
+      sel.value = 'cu';
+    }
+  });
+  if ($('x_23_fk')) cmdDspEcho();
+}
+
+function cmdPreset(c, ix){
+  const p = c.pre[ix];
+  c.f.forEach((f, i) => {
+    if (p.v[i] === undefined) return;
+    if ($('x_' + c.c + '_' + f.k)) wr('x_' + c.c + '_' + f.k, p.v[i]);
+  });
+  if (c.c === 0x33) syncAntennaLock();   /* wr() fires no change event */
+  $('enterCmd').classList.add('pending');
+}
+
+function updGen(ev){
+  const id = (ev.target && ev.target.id) || '';
+  /* Mark the button that would actually send this field. */
+  const b  = id.indexOf('x_') === 0  ? $('enterCmd')
+           : id.indexOf('p_') === 0 ? $('enterParam') : null;
+  const tgt = b;
+  if (tgt) tgt.classList.add('pending');
+  /* with_angle and Mag type, one to one as the SDK pairs them (User Guide
+     3.5: Mag type 0 with with_angle off, 1 with it on) - either one moves the
+     other, so the two never go out disagreeing. A READ that finds them apart
+     shows them apart: only an edit pairs them. */
+  if (id === 'x_51_wa' && $('x_51_mt')) wr('x_51_mt', $('x_51_wa').checked ? 1 : 0);
+  if (id === 'x_51_mt' && $('x_51_wa')) wr('x_51_wa', $('x_51_mt').value === '1' ? 1 : 0);
+  if (id.indexOf('x_51_') === 0) syncAntennaLock();   /* 0x33 */
+  /* The cutoffs, and a preset's payload line and selector, which follow its
+     fields whichever of them was typed in - the hidden ones are visible under
+     ?eng=1 and an edit there changes what the preset row should say. */
+  if (id.indexOf('x_') === 0) cmdEchoAll();
+}
+
+/* How the tab is laid out.
+ *
+ * By what a control does, not by which command carries it. A command is a
+ * transport detail: CMD 0x32 holds two gain steps and a switch that have
+ * nothing to do with each other, and the two gains belong beside the gains
+ * from three other commands. The payload is still built per command - that
+ * part is not a presentation choice - so this reorders the rendering and
+ * nothing else.
+ *
+ * Each entry lists its fields as [command, key], or [command, '*'] for all of
+ * them, in the order they should appear. A group with no list takes whatever
+ * is left, so a field added to a command shows up at the bottom rather than
+ * disappearing.
+ *
+ * The engineering edition sets this to null and gets the old per-command
+ * layout, headings and command numbers included - it is read beside the
+ * command reference, where that IS the useful order.
+ */
+const CMD_GROUPS = [
+  /* Front end first, then the chain behind it. TX & RX is the transmitter and
+     the receiver; Filter & Gain is everything after the mixer. Reading the
+     filters before the thing whose signal they filter is backwards, and this
+     page already states the rule for the cards inside the last group - "the
+     order the signal takes". The groups themselves were simply never held to
+     it. */
+  {lb:'TX & RX',               f:[[0x33,'*']]},
+  {lb:'Filter & Gain', f:[[0x17,'*'], [0x32,'eq'], [0x32,'rbb'],
+                          [0x3A,'dg'], [0x39,'eq']]},
+  {lb:ENG ? 'Sampling Rate & Update Rate' : 'Sampling Rate', f:[[0x34,'*'], [0x05,'*']]},
+  /* The catch-all is gone: it holds nothing. It was named for CMD 0x10, which
+     left for the Settings panel when Power Mode moved there, and an empty group
+     never renders anyway (buildCmdGrouped returns on !rows.length) - so it was
+     a heading nobody could see, describing a command that was not there.
+     A new command now lands in no group and simply does not appear, which is
+     louder than landing in a bin called Other, and that is the point. */
+  /* Last, and the two cards buildCmdTab() appends after the groups belong to
+     it: DC mode, then the band's two switches, then the raw reading, then the
+     hold. That is the order the signal takes - front end, band, the tap that
+     reads it, and the algorithm stage downstream - and it is also the order
+     somebody measuring a stable object works through them. */
+  /* First Stage - the background switches ahead of both bands - then Second
+     Stage, the two bands. A string in f is a stage heading on its own line. */
+  {lb:'Background Calibration', f:[[0x32,'dc'], 'Second Stage', [0x35,'*']]},
+];
+
+/* One field, wherever it lands. Shared by both layouts: the p2 / inl / hid
+ * handling is the awkward part, and having it twice is how the two stop
+ * agreeing. `st` carries what only makes sense between consecutive fields of
+ * one command. */
+function cmdEmit(c, f, into, st){
+  const row = mkField('x_' + c.c + '_' + f.k, f, null);
+  /* The marks that sit on a per-command heading travel with the rows when
+   * there are no per-command headings, because the rows do not sit together. Each says what it is in its own tooltip rather than relying on a
+   * legend somewhere else.
+   *
+   * Only then: the per-command layout still has the headings, and a mark in
+   * both places is the same warning twice. */
+  const lb = CMD_GROUPS && (row.querySelector('label.lb') || row.querySelector('span.lb'));
+  const tag = (txt, ti, cls)=> { if (!lb) return;
+    const w = document.createElement('span');
+    w.className = 'cmd' + (cls ? ' ' + cls : '');
+    w.textContent = ' ' + txt; w.title = ti;
+    const x = lb.querySelector && lb.querySelector('.lvx');   /* the lx note stays last */
+    if (x) lb.insertBefore(w, x); else lb.appendChild(w); };
+  /* ?eng=1, in a group that mixes commands: which one carries this row - said
+     once, on the first row of each run, since a command's rows sit together. */
+  if (ENG && CMD_GROUPS && st.mixed && st.tagged !== c) {
+    engLabel(row, '(cmd 0x' + hex2(c.c) + ')');
+    st.tagged = c;
+  }
+  /* EQ_TABLE is gated by the same version test - lockEq() disables both lists -
+   * it just says so with its own membership rather than with a flag. Grouped,
+   * its rows sit among ungated ones and need the mark like the rest. */
+  if (c.gate || EQ_TABLE.indexOf(c) >= 0) {
+    row.classList.add('gated');
+    if (c.gate === 2) row.classList.add('gate2');
+    /* A lock, not a warning triangle. Nothing here is dangerous - the row is
+       shut, and it opens when Check FW reports the version. The triangle is
+       still on the per-command headings, where it prefixes RF and means
+       something else; this way neither glyph has two jobs. */
+    tag((c.gate === 2) ? '🔒 (1T1R/2T3R: N/A)' : '🔒', 'Needs ' + (c.gate === 2 ? 'special FW' : 'FW ≥ 2.11') + '. Locked, and left out of ENTER and READ, '
+      + 'until Check FW reports it - on 2.7.6 this command exists but '
+      + 'means something else.', 'lockMark');
+  }
+  /* No RF mark. It sat on six of the eight commands here, which is not a
+     warning - it is a background colour, and one that made every row it
+     touched two words longer. What it said, the tab now says by grouping: a
+     row under RX or the sampling rate IS the RF configuration. */
+  if (c.live) tag('⚡', 'Not saved - a re-init or a power cycle puts it back.');
+  if (c.nosave) tag('⚡', 'Not saved - 20 Hz again after a power cycle or a factory reset. Initial leaves it as it is.');
+
+  if (f.p2 && st.prev) {
+    /* Move just the control across and drop the row it came with, so the
+     * pair reads as one setting. */
+    const ctl = row.querySelector('select,input');
+    if (ctl) { ctl.classList.remove('c1'); ctl.classList.add('c2'); st.prev.appendChild(ctl); }
+  } else if (f.inl && !f.hid) {
+    /* A checkbox IS its label here - mkField puts the box inside the text so
+     * the two cannot be separated - so the whole label moves, not the input
+     * the way p2 does it. The first one opens the row and the rest join it. */
+    const lbl = row.querySelector('label');
+    if (lbl) {
+      if (!st.ckrow) {
+        st.ckrow = document.createElement('div');
+        st.ckrow.className = 'g ckrow';
+        into.appendChild(st.ckrow);
+      }
+      st.ckrow.appendChild(lbl);
+    }
+  } else {
+    into.appendChild(row); st.prev = row; st.ckrow = null;
+  }
+}
+
+/* Presets under the fields they fill, so it reads as "one of these, or type
+ * your own" rather than as three more controls. The per-command layout; the
+ * grouped one calls the selector itself, so it can head the fields it fills. */
+function cmdPresets(c, into){
+  if (!c.pre) return;
+  cmdPresetSel(c, into);
+}
+
+/* The selector. Returns its label, for whoever has a command number to add. */
+function cmdPresetSel(c, into){
+  /* One selector, not a row of buttons. Three buttons read as three actions,
+   * and picking a rate is one setting with three values - the same shape as
+   * every other row on the tab, so it gets the same control.
+   *
+   * It is not a field: the payload is still built from the six controls the
+   * preset fills, so there is one path to the bytes and this only moves them.
+   * Named for the command, which is what the setting is called.
+   *
+   * wide, because "20Hz (Default)" is 89 px and a 96 px column offers 64. */
+  const row = document.createElement('div');
+  row.className = 'g';
+  const lb = document.createElement('span');
+  lb.className = 'lb';
+  lb.textContent = c.n;
+  /* A gated command's selector shuts with its fields (lockEq), and says so. */
+  if (c.gate) {
+    row.classList.add('gated');
+    if (c.gate === 2) row.classList.add('gate2');
+    const k = document.createElement('span');
+    k.className = 'cmd lockMark'; k.textContent = (c.gate === 2) ? ' 🔒 (1T1R/2T3R: N/A)' : ' 🔒';
+    k.title = 'Needs ' + (c.gate === 2 ? 'special FW' : 'FW ≥ 2.11') + '. Locked, and left out of ENTER and READ, '
+            + 'until Check FW reports it.';
+    lb.appendChild(k);
+    /* Who it is for, on a line of its own under the name. */
+    if (c.gate === 2) {
+      const u = document.createElement('small');
+      u.className = 'lvx'; u.textContent = 'Special board types only';
+      lb.appendChild(u);
+    }
+  }
+  const sel = document.createElement('select');
+  sel.className = 'wide';
+  sel.id = 'pre_sel_' + c.c;
+  sel.title = 'Fills the fields for this command. Nothing is sent until ENTER.';
+  c.pre.forEach((p, ix) => {
+    const o = document.createElement('option');
+    o.value = String(ix); o.textContent = p.lb;
+    sel.appendChild(o);
+  });
+  /* The one the fields' defaults make, as cmdEchoAll() would judge it. */
+  const ix = c.pre.findIndex(p => c.f.every((f, i) =>
+    f.after || f.q || p.v[i] === undefined || p.v[i] === f.d));
+  sel.value = String(Math.max(0, ix));
+  sel.addEventListener('change', ()=> cmdPreset(c, parseInt(sel.value, 10) || 0));
+  row.appendChild(lb); row.appendChild(sel);
+  into.appendChild(row);
+  return lb;
+}
+
+/* A write-only command said so on its heading. Without headings it says so
+ * under its own rows, which is where someone wondering why READ skipped it
+ * will be looking.
+ *
+ * Four words, because that is the whole of it: the firmware has no read case
+ * for the command, so READ passes over it rather than reporting it missing.
+ * Anyone who needs that sentence is reading this file, not the panel. */
+function cmdWoNote(c, into){
+  if (!c.wo) return;
+  const k = document.createElement('div');
+  k.className = 'hint k';
+  k.textContent = c.n + ' is write only';
+  into.appendChild(k);
+}
+
+function buildCmdGrouped(host){
+  /* Every field on the tab, command and all, so a group can pick from any of
+   * them and the leftovers can be found. EQ_TABLE joins here: laid out by
+   * function there is nothing separate about it. */
+  const all = [];
+  CMD_TABLE.concat(EQ_TABLE).forEach(c => c.f.forEach(f => all.push({c, f})));
+  const seen = new Set(), key = (it)=> it.c.c + ':' + it.f.k;
+
+  CMD_GROUPS.forEach(g => {
+    const rows = [];
+    if (g.f) g.f.forEach(pair => typeof pair === 'string' ? rows.push({sub: pair}) : all.forEach(it => {
+      if (it.c.c !== pair[0]) return;
+      if (pair[1] !== '*' && it.f.k !== pair[1]) return;
+      if (seen.has(key(it))) return;
+      seen.add(key(it)); rows.push(it);
+    }));
+    else all.forEach(it => { if (!seen.has(key(it))) { seen.add(key(it)); rows.push(it); } });
+    if (!rows.length) return;
+
+    const h = document.createElement('div');
+    h.className = 'sec';
+    h.textContent = g.lb;
+    /* A group holding only engineering rows goes with them - unless a preset
+       selector heads them, which is shown. */
+    if (rows.every(it => it.sub || (it.f.hid && !it.c.pre)) && !ENG) h.classList.add('hidRow');
+    /* Each command that landed here, once, in the order it first appeared. */
+    const done = [];
+    rows.forEach(it => { if (it.c && done.indexOf(it.c) < 0) done.push(it.c); });
+    const mixed = done.length > 1;
+    if (ENG) h.insertAdjacentHTML('beforeend', engNo(engCmds(done.map(c => c.c))));
+    host.appendChild(h);
+
+    const st = {prev:null, ckrow:null, mixed};
+    let last = null;
+    rows.forEach(it => {
+      if (it.sub) {
+        const s = document.createElement('div');
+        s.className = 'g bitrow stack stageNext';
+        const l = document.createElement('span'); l.className = 'lb'; l.textContent = it.sub;
+        s.appendChild(l); host.appendChild(s);
+        st.prev = null; st.ckrow = null; st.stage = true;
+        return;
+      }
+      /* p2 and inl only ever pair fields of one command, so the run resets at
+       * every boundary - otherwise a group's first field could be swept into
+       * the previous command's row. */
+      if (it.c !== last) {
+        st.prev = null; st.ckrow = null; last = it.c;
+        /* The selector heads the fields it fills - the choice first, then
+           what it set. Hidden fields leave the customer view as it was. In a
+           mixed group it carries the command number, which the fields below
+           then do not repeat. */
+        if (it.c.pre) {
+          const lb = cmdPresetSel(it.c, host);
+          if (it.c.nosave) {
+            const z = document.createElement('span');
+            z.className = 'cmd'; z.textContent = ' ⚡';
+            z.title = 'Not saved - 20 Hz again after a power cycle. Initial leaves it as it is.';
+            lb.appendChild(z);
+          }
+          if (ENG && mixed && st.tagged !== it.c) {
+            lb.insertAdjacentHTML('beforeend', engNo('(cmd 0x' + hex2(it.c.c) + ')'));
+            st.tagged = it.c;
+          }
+        }
+      }
+      cmdEmit(it.c, it.f, host, st);
+      /* Under a stage heading, the band rows sit indented. */
+      if (it.f.stack) st.stage = true;
+      else if (st.stage && host.lastElementChild) host.lastElementChild.classList.add('inStage');
+    });
+    done.forEach(c => cmdWoNote(c, host));
+  });
+
+  /* Nothing is left for the FW 2.11 panel: its four commands are in their
+   * own groups now, each row carrying the lock. Hiding the heading left an
+   * empty box at the foot of the tab, so the panel becomes the key to that
+   * lock instead - the one mark here that a reader cannot work out unaided. */
+  const sec = $('eqSec');
+  if (sec) {
+    sec.classList.add('hidRow');
+    const k = document.createElement('div');
+    k.className = 'legend';
+    k.textContent = '🔒 needs FW ≥ 2.11';
+    sec.parentNode.appendChild(k);
+    /* The bolt's key too. Its own class: lockEq() hides .legend once the
+     * lock has nothing to say, and the bolt means the same on any firmware. */
+    if (CMD_TABLE.some(c => c.live || c.nosave)) {
+      const z = document.createElement('div');
+      z.className = 'legendLive';
+      z.textContent = '⚡ not kept by Save Setting - set it again after every power-up';
+      sec.parentNode.appendChild(z);
+    }
+  }
+}
+
+function buildCmdByCommand(host){
+  CMD_TABLE.forEach(c => {
+    /* gate: the command means something different on 2.7.6, so it is built
+     * into the FW 2.11 section instead of the open list. Same
+     * table, same byte payload, same ids - only the parent changes. */
+    const into = c.gate ? $('gateHost') : host;
+    const h = document.createElement('div');
+    h.className = 'sec' + (c.wo ? ' wo' : '');
+    /* A live tune is sent by the same ENTER as everything else now, so what
+     * still sets it apart is how long it lasts - which belongs on the row. */
+    h.textContent = '0x' + c.c.toString(16).toUpperCase().padStart(2,'0')
+                  + '  ' + c.n
+                  + (c.live ? '   ⚡ not saved' : '');
+    /* Say why it is marked, next to the mark. */
+    if (c.wo) {
+      const k = document.createElement('span');
+      k.className = 'k';
+      k.textContent = '   write only — no read-back';
+      h.appendChild(k);
+    }
+    into.appendChild(h);
+    const st = {prev:null, ckrow:null};
+    c.f.forEach(f => { if (!f.after) cmdEmit(c, f, into, st); });
+    cmdPresets(c, into);
+  });
+}
+
+function buildCmdTab(){
+  const host = $('cmdHost'); if (!host || host.childElementCount) return;
+  /* eng: built as any other, so its ids exist, but out of the layout. */
+  if (!ENG) CMD_TABLE.forEach(c => { if (c.eng) c.f.forEach(f => { f.hid = 1; }); });
+  if (CMD_GROUPS) buildCmdGrouped(host); else buildCmdByCommand(host);
+  engSendAdd(ADV_GEN, 'cmdRes');
+)HTMLEOF"
+R"HTMLEOF(
+  /* The hold last: it is the furthest downstream of the three - the algorithm
+     stage, not the front end or the band - and it is the only one you press
+     twice, around everything else. */
+  const hold = document.createElement('div');
+  hold.className = 'panel';
+  hold.innerHTML =
+    '<div class="title"><span>Hold stationary trackers' + engNo('cmd 0x90 (PID 0x73)') +
+    '<span id="staHoldLock" class="gone" title="Needs FW 2.11 or later. '
+    + 'Press Check FW."> 🔒</span><span class="cmd" title="Not saved - released '
+    + 'again after a power cycle or Initial."> ⚡</span></span></div>' +
+    '<div class="btnrow">' +
+    '<button id="staHoldOn" class="actBtn" onclick="staSetHold(1, this)" ' +
+    'title="Freezes the stationary detections: every stationary slot keeps the distance, ' +
+    'bearing and state it had, and goes on being reported. The moving band is left ' +
+    'running. Lit while the module reports it held. Acts immediately; it is not ' +
+    'part of ENTER. Needs FW 2.11.">Hold</button>' +
+    '<button id="staHoldOff" class="actBtn" onclick="staSetHold(0, this)" ' +
+    'title="Lets the stationary detections follow the signal again. Acts ' +
+    'immediately; it is not part of ENTER. Needs FW 2.11.">Release</button></div>' +
+    '<div class="hint" id="staHoldRes">Not known - press READ.</div>';
+  host.appendChild(hold);
+  cmdDspEcho();
+  syncAntennaLock();
+  /* The gate:1 rows were just created here, enabled. Same reason as
+   * buildEqTab(): lock them now rather than waiting for a /state. */
+  lockEq(lastD);
+  lockNonSdk();
+}
+
+/* The bolt beside Stationary sensitivity, the same mark the CMD tab uses for
+ * "not saved": on 2.7.6, levels 7~9 do not come back whole after a power
+ * cycle or Initial; 0~6 do. Shown only once a version has been read - an
+ * unknown one is not a reason to warn - and only on a level it applies to.
+ * From applyLocks() once a second, and from upd() so a new pick shows it
+ * straight away. */
+function staBolt(d){
+  const sl = $('sta_live'); if (!sl) return;
+  const lv = parseInt(v('i_sta'), 10);
+  const on = fwKnown(d) && !fwAtLeast(d, FW_211) && lv >= 7;
+  sl.classList.toggle('hidRow', !on);
+  const k = $('staWarnKey'); if (k) k.classList.toggle('hidRow', !on);
+}
+
+/* What 2.7.6 does not support, locked - like every gate here, also while no
+ * version has been read, because an unknown one cannot clear the bar.
+ *
+ *   UART Output   every mode but Off and Normal.
+ *   Hold          the stationary hold button.
+ *
+ * One bar for both, FW_211: 2.7.6 and 2.11 are the two generations in use,
+ * so a finer version per feature would be precision nobody can use.
+ *
+ * Runs from applyLocks(), after the action buttons are switched back on, so
+ * it has the last word on the hold. */
+function lockOldFw(d){
+  const sel = $('f3Mode');
+  const locked = [];
+  if (sel && sel.options.length) {
+    const old = !fwAtLeast(d, FW_211);
+    let moved = false;
+    Array.prototype.forEach.call(sel.options, o => {
+      const m = OUT_MODES.find(x => x.k === o.value);
+      const lock = old && !!m && m.fr === 0xF3;
+      /* Written only when it changes. This runs on every /state, once a
+         second, and assigning an option's text - even the same text - makes
+         the browser redraw an open dropdown, which flickered under the
+         pointer of anyone choosing a mode. */
+      if (o.disabled !== lock) o.disabled = lock;
+      /* The same lock the CMD tab's gated rows carry. An <option> holds text
+         only, so the mark is part of its label while it is locked. */
+      const label = m ? (lock ? '🔒 ' : '') + m.lb : null;
+      if (label !== null && o.textContent !== label) o.textContent = label;
+      if (lock) locked.push(m.lb);
+      if (lock && o.selected) moved = true;
+    });
+    const tip = old ? 'Needs FW 2.11 or later (press Check FW). '
+                    + 'Off and Normal work on any firmware.' : '';
+    if (sel.title !== tip) sel.title = tip;
+    if (moved) { sel.value = 'on'; f3Snap(); }
+  }
+  ['staHoldOn', 'staHoldOff'].forEach(id => { const b = $(id);
+    if (b) b.disabled = !fwAtLeast(d, FW_211); });
+  /* The dropdown only shows its locks when it is open, so the label carries
+   * the mark and the key below names the modes. */
+  const fm = $('f3LockMark'); if (fm) fm.classList.toggle('gone', !locked.length);
+  const fk = $('f3LockKey');
+  if (fk) {
+    fk.textContent = '🔒 needs FW ≥ 2.11: ' + locked.join(', ');
+    fk.classList.toggle('gone', !locked.length);
+  }
+  const hl = $('staHoldLock');
+  if (hl) hl.classList.toggle('gone', fwAtLeast(d, FW_211));
+  staBolt(d);
+}
+
+function buildParamTab(){
+  const host = $('paramHost'); if (!host || host.childElementCount) return;
+  PID_TABLE.forEach(s => {
+    const h = document.createElement('div'); h.className = 'sec';
+    h.textContent = s.sec;
+    /* Every row here is a CMD 0x90 parameter write; the eng edition has the
+       PID in the corner instead, so this is for the grouped page only. */
+    if (ENG && CMD_GROUPS) h.insertAdjacentHTML('beforeend', engNo('cmd 0x90'));
+    host.appendChild(h);
+    s.i.forEach(it => {
+      const enc = ENC[it.e];
+      /* hid: a row the shipping page holds at its default and does not offer.
+         It is still written - applyParamTab walks the table, not the screen -
+         so the value on the module is the same either way. CMD_GROUPS is the
+         edition: the engineering build sets it to null and shows everything. */
+      const row = mkField('p_' + it.k, {t: (it.e === 'bool' || it.e === 'los') ? 'c' : 'n',
+                                        lb: it.lb, d: it.d, e: it.e, r: it.r, rv: it.rv, mn: it.mn,
+                                        hid: CMD_GROUPS ? it.hid : 0,
+                                        ti: it.ti}, enc);
+      /* The PID in the corner is for the edition read beside the command
+         reference. On the shipping page it is a number nobody types: the row
+         says what the setting is, and a protocol log is not what the operator
+         in front of this page is holding. */
+      if (ENG && CMD_GROUPS) engLabel(row, '(0x' + hex2(it.p) + ')');
+      /* A typed box says what it takes, beside it, where a pick-list needs no telling. */
+      const box = row.querySelector('input[type=number]');
+      if (box) {
+        const h = document.createElement('span'); h.className = 'rngHint';
+        h.textContent = '(' + box.min + '~' + box.max + ')';
+        row.appendChild(h);
+      }
+      if (!CMD_GROUPS) {
+        const tag = document.createElement('span'); tag.className = 'cmd';
+        tag.textContent = '0x' + it.p.toString(16).toUpperCase();
+        row.appendChild(tag);
+      }
+      host.appendChild(row);
+    });
+  });
+  /* Just created, enabled. Lock it now rather than waiting for a /state. */
+  lockNonSdk();
+  engSendAdd(TRK_GEN, 'paramRes');
+}
+
+/* ---- apply ----------------------------------------------------------- */
+
+const hex2 = (n)=> n.toString(16).toUpperCase().padStart(2,'0');
+const rd   = (id)=> { const e = $(id); return e.type === 'checkbox' ? (e.checked?1:0) : e.value; };
+/* Inverse of rd(). Returns false when the control cannot show the value.
+ *
+ * A select handed a value its option list does not carry does NOT keep what it
+ * had - the DOM empties it, selectedIndex goes to -1, and the box on screen is
+ * blank. That is the one state this page must never leave a control in: rd()
+ * would then report '', ENTER would parse that as 0, and pressing it would
+ * write a zero over whatever the module was actually holding. So the previous
+ * value goes back before the false is returned, and the caller reports the
+ * answer as unshowable with the control still sitting on a sendable value. */
+const wr   = (id, v)=> { const e = $(id);
+                         if (e.type === 'checkbox') { e.indeterminate = false;
+                                                     e.checked = !!v; if (e.tgSync) e.tgSync(); return true; }
+                         const was = e.value;
+                         e.value = v;
+                         if (String(e.value) === String(v)) return true;
+                         e.value = was;
+                         return false; };
+/* Two-byte PIDs come back folded to unsigned; only the signed encodings want
+ * them unfolded, and only for display and for the field. */
+/* A field whose byte is two independent bits, each with its own checkbox.
+ *
+ * CMD 0x35 is the case this exists for. b0 holds or keeps tracking the
+ * background estimate; b1 passes the signal raw. They are two switches, not
+ * four points on one axis - a Freeze/Update/Off/Bypass list reads as a
+ * progression, and it hides that b1 is the INVERSE of what the SDK calls
+ * environment subtraction.
+ *
+ * The field is still ONE byte. applyCmdTab and readCmdTab index c.f against
+ * payload bytes 1:1, so splitting this into two fields would quietly make
+ * CMD 0x35 a three-byte command. The pair packs into the one value here.
+ *
+ * inv on a bit means the tick CLEARS it. That is the whole reason the page
+ * can say "environment subtraction" while the wire says "bypass". */
+const bitId   = (id, b)=> id + '_' + b.k;
+const bitOn   = (b, val)=> !!((((val & b.b) ? 1 : 0) ^ (b.inv ? 1 : 0)));
+const bitsRd  = (id, f)=> f.bits.reduce((v, b)=>
+  v | (((($(bitId(id, b)).checked ? 1 : 0) ^ (b.inv ? 1 : 0))) ? b.b : 0), 0);
+/* Refuses a value carrying a bit this row has no checkbox for, the way wr()
+ * refuses a select an option it does not list - so the caller reports it
+ * unshowable instead of the row swallowing it and reading back as something
+ * else. A checkbox with no such guard would clear a bit like CMD 0x32's
+ * en_swR_DCOC on every apply. */
+const bitsWr  = (id, f, val)=> {
+  if (val & ~f.mask) return false;
+  f.bits.forEach(b => { $(bitId(id, b)).checked = bitOn(b, val); });
+  return true; };
+const bitsLab = (id, f, val)=> {
+  const on = f.bits.filter(b => bitOn(b, val));
+  return on.length ? on.map(b => b.k).join('+') : 'none'; };
+
+const unfold = (enc, v)=> (enc.len === 2 && enc.min < 0 && v > 32767) ? v - 65536 : v;
+/* Report-only tidy-up. The field keeps the exact decoded value - q15 needs five
+ * decimals and Math.trunc() on the way back is unforgiving, so a tidy 0.3000 can
+ * re-encode one below what the module reported. This is just for the line that
+ * says what changed, where 0.29998779296875 is noise. */
+const fmtNum = (v)=> (typeof v === 'number' && !Number.isInteger(v)) ? +v.toFixed(4) : v;
+
+/* ===== Advanced and Tracker: one item per SDK function =====================
+ * ENTER writes through the SDK setters and READ reads through the getters
+ * (/get?t=adv, /get?t=trk), as General Settings does: each item is the verb that
+ * calls one setter, its controls in that setter's argument order and units, and
+ * the getter answers under the same name. The tabs keep their layout - the
+ * fields are the same controls - only the path to the module changed.
+ *
+ * A field no SDK call covers is shown but neither written nor read: the
+ * end-point recorder's count, 0x33 (General Settings' Stationary trackers sets
+ * it). lockNonSdk() greys it.
+ *
+ * gate: written and read only once Check FW has found FW 2.11 or later - the
+ * same lock the rows carry. */
+const ADV_GEN = [
+  {k:'mhpf',    lb:'Moving HPF',                   ids:['x_23_fk', 'x_23_fn']},
+  {k:'mlpf',    lb:'Moving LPF',                   ids:['x_23_fl']},
+  {k:'shpf',    lb:'Stationary HPF',               ids:['x_23_sk', 'x_23_sn']},
+  {k:'slpf',    lb:'Stationary LPF',               ids:['x_23_sl']},
+  {k:'antenna', lb:'Antenna',                      ids:['x_51_tx', 'x_51_rx', 'x_51_wa'], gate:2},
+  {k:'magtype', lb:'Mag type',                     ids:['x_51_mt'],       gate:2},
+  {k:'ahpf',    lb:'Background subtraction',       ids:['x_50_dc_hpf'],   gate:1},
+  {k:'ahpfsw',  lb:'Background update',            ids:['x_50_dc_swcap'], gate:1},
+  {k:'eqgain',  lb:'Equalizer gain',               ids:['x_50_eq'],       gate:1},
+  {k:'bbatt',   lb:'Baseband attenuator',          ids:['x_50_rbb'],      gate:1},
+  {k:'fs',      lb:'Sampling Rate',                ids:['x_52_fs']},
+  {k:'urate',   lb:'Update Rate',                  ids:['x_5_rate']},
+  {k:'mbg',     lb:'Moving background update',     ids:['x_53_hf_upd']},
+  {k:'menv',    lb:'Moving env subtraction',       ids:['x_53_hf_sub']},
+  {k:'sbg',     lb:'Stationary background update', ids:['x_53_hs_upd']},
+  {k:'senv',    lb:'Stationary env subtraction',   ids:['x_53_hs_sub']},
+  {k:'eqorder', lb:'Equalizer order',              ids:['x_57_eq'],       gate:1},
+  {k:'dspgain', lb:'Digital Gain',                 ids:['x_58_dg'],       gate:1},
+];
+const TRK_GEN = [
+  {k:'stopt',   lb:'Stationary tracker',           ids:['p_s_init', 'p_s_iir', 'p_e_dist'], w:[1, 1000, 1]},
+  {k:'mthr',    lb:'Moving threshold',             ids:['p_f_init', 'p_f_sthn', 'p_f_slim', 'p_f_ssum']},
+  {k:'msmooth', lb:'Moving smoothing',             ids:['p_f_iir'], w:[1000]},
+  {k:'los',     lb:'Hide targets behind a nearer one', ids:['p_los']},
+  {k:'fovmin',  lb:'Minimum angle',                ids:['p_fovmin']},
+];
+
+/* Fields no SDK call covers: shown, greyed, neither written nor read. */
+function lockNonSdk(){
+  ['p_e_max'].forEach(id => {
+    const e = $(id); if (!e) return;
+    e.disabled = true;
+    e.title = 'No SDK function covers this field - it is neither written nor read here.';
+  });
+}
+
+/* One READ row per item: the module's value goes on the controls when it
+ * differs, and the row says what it was and what it is now. */
+function genReadRows(items, S){
+  return items.map(it => {
+    const was = genNow(it), wl = genLabel(it, was);
+    if (S[it.k] === undefined) return {n:it.lb, was:wl, now:'-', s:'nr'};
+    const now = genArr(S[it.k]);
+    if (genSame(was, now)) return {n:it.lb, was:wl, now:wl, s:'same'};
+    genPut(it, now);
+    return {n:it.lb, was:wl, now:genLabel(it, genNow(it)), s:'diff'};
+  });
+}
+
+/* ENTER for one of the two tabs: every item its lock allows, through its
+ * setter. Custom is kept, as on General Settings. Sent, not confirmed - READ
+ * says what the module took. */
+async function genApplyTab(items, open, resId, check){
+  let n = 0, follow = false;
+  const held = [], kept = [];
+  /* Back to 20 Hz goes first, so what waits on it is written after it. Down
+   * from 20 Hz stays where it is, after the antenna. */
+  const ur = items.find(it => it.k === 'urate');
+  if (ur && urateSlow && open(ur) && !genCustom(ur) && (genNow(ur) || [])[0] === 0)
+    items = [ur].concat(items.filter(it => it !== ur));
+  let moved = false;
+  for (const it of items) {
+    if (!open(it) || slowSkip(it) || downSkip(it) || engSkip(it)) continue;
+    if (genCustom(it)) { kept.push(it); continue; }
+    const a = genNow(it);
+    const why = (a === null) ? 'not a number' : (typedWhy(it) || (check ? check(it, a) : ''));
+    if (why) { held.push(it.lb + ' &mdash; ' + why); continue; }
+    if (it.k === 'antenna' && antSame(a)) continue;   /* see antSent */
+    const took = await postCmd((it.send || it.k) + ':' + a.join(':'));
+    if (it.k === 'antenna') antSent = (took === false) ? null : a.slice(0, 3);
+    if (it.k === 'urate') {
+      /* The board sends no CMD 0x05 for the rate the module already runs. */
+      moved = (urateIx !== a[0]); urateIx = a[0];
+      urateSlow = a[0] > 0; rate.slow(urateSlow); follow = true;   /* see rate.slow() */
+    }
+    n++;
+  }
+  if (follow) await urateFollow(resId, moved);
+  const msg = [n ? '<span class="ok">Sent &mdash; press READ to confirm</span>'
+                 : '<span class="k">Nothing sent</span>'];
+  if (kept.length)   msg.push('<span class="k">Custom (kept): ' + kept.map(it => it.lb).join(', ') + '</span>');
+  msg.push(...held.map(h => '<span class="err">! not sent: ' + h + '</span>'));
+  $(resId).innerHTML = msg.join('<br>');
+}
+
+async function applyCmdTab(){
+  const btn = $('enterCmd');
+  btn.classList.add('sending'); $('cmdRes').textContent = '';
+  const gateOn = eqUnlocked(lastD);
+  if (gateOn) buildEqTab();
+  await genApplyTab(ADV_GEN, it => !it.gate || gateOk(it, lastD), 'cmdRes');
+  btn.classList.remove('sending'); btn.classList.remove('pending');
+}
+
+async function applyParamTab(){
+  const btn = $('enterParam');
+  btn.classList.add('sending'); $('paramRes').textContent = '';
+  await genApplyTab(TRK_GEN, () => true, 'paramRes');
+  btn.classList.remove('sending'); btn.classList.remove('pending');
+}
+
+async function readCmdTab(btn, quiet){
+  buildCmdTab();
+  const gateOn = eqUnlocked(lastD);
+  if (gateOn) buildEqTab();
+  if (btn) btn.classList.add('busy');
+  const S = await genFetch('cmdRes', 'adv');
+  if (!S) { if (btn) btn.classList.remove('busy'); return null; }
+  noteUrate(S);
+  noteAnt(S);
+  const rows = genReadRows(ADV_GEN.filter(it => (!it.gate || gateOk(it, lastD)) && !slowSkip(it) && !engSkip(it)), S);
+  /* wr() fires no change event, so the derived pieces are redone here. */
+  syncAntennaLock();
+  cmdEchoAll();
+  const tally = renderRead('cmdRes', rows, 0, quiet, 'Advanced', r => r.n);
+  /* The hold is on this tab too, and not in /get?t=adv: its own read. */
+  if (gateOn) staShow(await genFetch('staHoldRes', 'hold'));
+  if (btn) btn.classList.remove('busy');
+  return tally;
+}
+
+async function readParamTab(btn, quiet){
+  buildParamTab();
+  if (btn) btn.classList.add('busy');
+  const S = await genFetch('paramRes', 'trk');
+  if (!S) { if (btn) btn.classList.remove('busy'); return null; }
+  const rows = genReadRows(TRK_GEN, S);
+  const tally = renderRead('paramRes', rows, 0, quiet, 'Tracker', r => r.n);
+  if (btn) btn.classList.remove('busy');
+  return tally;
+}
+
+
+
+
+
+
+/* ---- read-back for the two generated tabs ----------------------------
+ * Both read through the SDK getters (/get?t=adv, /get?t=trk) and compare here:
+ * the board keeps no mirror of these tabs, so comparing is the page's job.
+ *
+ * A field the module did not answer for is missing from the reply rather than
+ * present with a value, which is how "no response" stays distinguishable from
+ * "answered with something else" — they need opposite fixes. */
+/* READ's report for the Advanced and Tracker tabs. A read does not compare, it
+ * replaces: whatever the module holds goes on the controls, and each control it
+ * moved is logged in the Frame log as "was -> now". The panel's own line is the
+ * count, by item - a CMD on Advanced, a PID on Tracker (itemOf() says which item
+ * a row belongs to).
+ *
+ * Two outcomes leave the page and the module out of step, and the count says
+ * so in red: a field the module never answered for, and a value no control can
+ * show (a bit outside a checkbox pair). A select whose options lack the value
+ * does not count - it shows "Custom (value)" and keeps it. */
+function renderRead(hostId, rows, nack, quiet, tab, itemOf){
+  /* itemOf() answers null for a row the screen does not show - it is read and
+     logged like any other, but not counted: the count is what can be seen. */
+  const counted = (r)=> itemOf(r) !== null;
+  const items   = new Set(rows.filter(counted).map(itemOf));
+  const changed = new Set(rows.filter(r => r.s === 'diff' && counted(r)).map(itemOf));
+  const bad = rows.filter(r => r.s === 'noshow');
+  const nr  = rows.filter(r => r.s === 'nr');
+  const n = items.size;
+  const part = [changed.size ? changed.size + ' changed' : 'no change'];
+  if (nr.length)  part.push(nr.length + ' no response');
+  if (bad.length) part.push(bad.length + ' not shown');
+
+  frameLog.add('note', 'READ ' + tab + ' \u00b7 ' + part.join(', '));
+  rows.forEach(r => {
+    if (r.s === 'diff')   frameLog.add('note', '  ' + r.n + ': ' + r.was + ' \u2192 ' + r.now);
+    if (r.s === 'nr')     frameLog.add('note', '  ' + r.n + ': no response - left at ' + r.was);
+    if (r.s === 'noshow') frameLog.add('note', '  ' + r.n + ': module reports ' + r.now
+                                       + ', which this control cannot show - left at ' + r.was);
+  });
+
+  const err = bad.length || nr.length;
+  const out = ['<span class="' + (err ? 'err' : 'ok') + '">Read &mdash; ' + part.join(', ')
+               + ((changed.size || err) ? ' (see Frame log)' : '') + '</span>'];
+  if (nack) out.push('<span class="err">module NACK status = ' + nack + '</span>');
+  $(hostId).innerHTML = out.join('<br>');
+  return {n, diff: changed.size, bad: bad.length, nr: nr.length, unnamed: 0};
+}
+
+
+/* fetch() has no timeout of its own, so a reply that never arrives leaves
+ * 'reading back…' on the panel for good. Past the firmware's own worst case
+ * for a silent module (VERIFY_BUDGET_MS in KW307WiFi.h), so a board that is
+ * merely slow is never cut off. */
+const RB_MS = 15000;
+
+/* The board answers nothing while a read-back is in flight. Hold /state and
+ * /data rather than queue requests against a frozen server; the socket
+ * resumes pushing frames as soon as loop() runs again. */
+let rbBusy = false;
+/* When the last Write or READ finished. While one runs, the board's loop() is
+ * inside the SDK waiting on the module and pushes nothing; that gap is expected,
+ * so the no-frames warning holds off until STALE_MS after it ends. */
+let opDoneAt = -Infinity;
+function pausePollers(){
+  rbBusy = true;
+  clearTimeout(timer);       timer      = null;
+  clearInterval(stateTimer); stateTimer = null;
+  clearTimeout(stateSoon);   stateSoon  = null;
+}
+function resumePollers(){
+  rbBusy = false;
+  opDoneAt = performance.now();
+  if (!polling) return;
+  if (stateTimer === null) stateTimer = setInterval(fetchState, 1000);
+  /* Absent on the UART page, which has no fallback transport to fall back to. */
+  if (typeof startPoll === 'function') startPoll();
+}
+
+
+
+)HTMLEOF"
+R"HTMLEOF(
+/* PID 0x73 stationary hold - one button: press to hold, press again to release.
+ *
+ * A button rather than a checkbox because this is something you DO to the band
+ * for a moment, not a setting the panel carries; a checkbox invites leaving it
+ * ticked, and a hold left on is a stationary output that has quietly stopped
+ * being about the room. The caption IS the state: "Hold stationary" is the
+ * offer, "Release hold" means it is on.
+ *
+ * WHY IT IS NEEDED. Disturbing the stationary band steps the signal, and the
+ * estimate behind it takes seconds to re-settle. That settling is not silence -
+ * the module reads the transient as evidence, long enough to invent a still
+ * target that was never there and long enough to drop one that has only just
+ * appeared. Which way it goes depends on how long the real target had been
+ * sitting there, which is why this shape of bug passes on a bench and fails in
+ * a room. The moving band is left running on purpose: seeing someone walk in is
+ * what says to abandon the measurement rather than trust it.
+ *
+ * WHICH disturbance is not this page's business to prescribe: a button that
+ * names one procedure is a button people will not reach for during another.
+ * It says what it does, and stops there.
+ *
+ * Read back rather than trusted, and this earns it more than most: while the
+ * hold is on the stationary output is frozen, so a hold that did not land looks
+ * exactly like one that did - the numbers sit still either way. The read-back is
+ * the only thing that tells them apart.
+ *
+ * NOT a Settings row: it is a transient, and a row would put it in the batch
+ * ENTER sends. Needs FW 2.11.
+ *
+ * Two buttons, each sending its own value, rather than one that flips: a flip
+ * has to know the state it flips from, and the page cannot keep that - a module
+ * power-cycled or Initialised has let go, and a page loaded onto a module that
+ * holds never saw it held. Each press means what it says whatever went before. */
+
+/* What the module last answered: 1 held, 0 released, null not known. Set only
+ * from a read-back - a press, or Advanced READ. */
+let staHeld = null;
+
+function staShow(d, want){
+  const res = $('staHoldRes'); if (!res) return;
+  const v = d ? d.stahold : undefined;
+  staHeld = (v === undefined) ? null : (v ? 1 : 0);
+  const on = $('staHoldOn'); if (on) on.classList.toggle('on', staHeld === 1);
+  if (staHeld === null) {
+    res.innerHTML = '<span class="err">No reply - the hold state is unknown.</span>';
+    return;
+  }
+  res.innerHTML = (want !== undefined && staHeld !== want)
+    ? '<span class="err">The module did not take the change.</span>'
+    : (staHeld
+        ? '<span class="ok">Held - stationary output frozen, the stationary slots keep what they had.</span>'
+        : 'Released, confirmed by read-back.');
+}
+
+/* A new connection: whatever was read before is about another session. */
+function staForget(){
+  staHeld = null;
+  const on = $('staHoldOn'); if (on) on.classList.remove('on');
+  const res = $('staHoldRes'); if (res) res.textContent = 'Not known - press READ.';
+}
+
+async function staSetHold(want, btn){
+  btn.classList.add('busy');
+  await postCmd('stahold:' + want);
+  const d = await genFetch('staHoldRes', 'hold');
+  btn.classList.remove('busy');
+  staShow(d, want);
+}
+
+/* ---- CMD 0xF3, the composite output --------------------------------------
+ * The one variable-length frame. Its shape is not implied by its length: the
+ * 3-byte descriptor at [2..4] says which blocks are present and how detailed
+ * they are, and the frame carries the descriptor that ACTUALLY took effect -
+ * the firmware clamps an illegal one rather than refusing it - so everything
+ * below reads the frame's own copy and never what this page asked for.
+ *
+ *   [0-1] frame_index  uint16 BE
+ *   [2]   rg_sel       bit3..0 rg_lo, bit7..4 rg_hi
+ *   [3]   blk          which blocks are present
+ *   [4]   fmt          how detailed they are
+ *   [5..] the blocks, in the fixed order f3Layout() walks
+ *
+ * Only human_flag, the two Fast trackers at full width and EPR nearest are
+ * used, because that trio is the 0xF0 body byte for byte and the
+ * plot already knows how to read it. The rest is measured and skipped. */
+const F3_CMD = 0xF3;
+
+/* Moving and Stationary on the labels, fast and slow in the keys. The bit
+   names come from the firmware, which calls the two tracker chains fast and
+   slow after how quickly they respond; the page says moving and stationary
+   everywhere it shows a target, and a switch that turns on "Slow trackers"
+   next to a table headed Stationary is a switch someone has to translate. */
+const F3_BLK = [
+  {b:0x01, k:'rgf', lb:'Range-gate profile, Moving'},
+  {b:0x02, k:'rgs', lb:'Range-gate profile, Stationary'},
+  {b:0x04, k:'hum', lb:'presence_flag', d:1, plot:1},
+  /* hid: rendered, wired, not shown. The end-point recorder is an extension of
+     the stationary trackers rather than a thing of its own, so a customer
+     reading this page has stationary and needs no second name for it. Hiding
+     the two switches keeps that out of view without changing a byte: the
+     defaults below still apply and the modes above still set these bits, which
+     is why picking Normal still sends 0x08. See f3Bits(). */
+  {b:0x08, k:'ep1', lb:'EPR nearest', d:1, plot:1, hid:1},
+  {b:0x10, k:'ep2', lb:'EPR 2nd nearest', hid:1},
+  {b:0x20, k:'fst', lb:'Moving trackers x2', d:1, plot:1},
+  {b:0x40, k:'slw', lb:'Stationary trackers x4'},
+  /* Off by default, matching the module's own F3_DEFAULT_BLK 0x7F. It is the
+     PEAK magnitude in the room, not the mean: the mean is what feeds the
+     detection threshold, so reading this as a noise floor raises that threshold
+     by the room's whole peak-to-mean ratio. Span is gate 0 out to the detect
+     range, which by default already reaches past RG11. */
+  {b:0x80, k:'room', lb:'Room peak magnitude x2'}
+];
+const F3_FMT = [
+  {b:0x01, k:'ffull', lb:'Moving trackers full &mdash; 8 B each, not 1', d:1, plot:1},
+  {b:0x02, k:'sfull', lb:'Stationary trackers full'},
+  {b:0x04, k:'rgmag', lb:'Magnitude only &mdash; no distance, angle or speed'},
+  {b:0x08, k:'fspd',  lb:'Moving mean speed (+4 B)'}
+];
+
+/* What the module can be told to send.
+ *
+ * The first five are kw307_set_output()'s: OFF, NORMAL, NORMAL_WITH_SPD, RG
+ * and Parking. The sixth is this page's - the same CMD 0x11 with a descriptor
+ * of one's own choosing, which the SDK has no constant for because it is not
+ * one shape.
+ *
+ *   b   the CMD 0x11 payload. Two of the five are a bare mode byte; the three
+ *       0xF3 ones carry the descriptor with it, so the mode and the shape land
+ *       together and the module can never emit a frame against a leftover one.
+ *       Built from d rather than written out again - see outBytes().
+ *   d   what the switches below should read for this mode.
+ *   ex  d IS the descriptor that was sent. Without it, d is an EQUIVALENCE:
+ *       0xF0 is a fixed frame with a header of its own and no descriptor at
+ *       all, so d says which blocks its body carries, in the same words, and
+ *       len carries the length the formula cannot work out.
+ *   fr  the frame the module will send. len its size, where f3Len() does not
+ *       describe it.
+ *
+ * Parking was the 0xF2 frame, mode byte 0x02, which is what kw307_set_output()
+ * sent and what this transcribed. FW 2.11 has no 0xF2: CMD 0x11 answers a
+ * request for it with STATUS_INVALID. It is now the 38-byte 0xF3
+ * shape the SDK's parking module has asked for since SDK 2.6.0 - the same
+ * descriptor, 0x30 0x2E 0x05, so the two agree on what Parking means. */
+const OUT_MODES = [
+  {k:'off',  lb:'Off',      b:[0xFF], sdk:0,
+   n:'the module stops sending. It keeps running, and keeps this shape.'},
+  {k:'on',   lb:'Normal',   b:[0x00], fr:0xF0, len:27, sdk:1,
+   d:{lo:0, hi:11, blk:0x2C, fmt:0x01},
+   n:'the standard frame. This shape is kept.'},
+  /* Next to Normal because that is what it is: the same blocks, in a frame
+     with room for the speed. 0xF0's layout is fixed and already in customers'
+     hands, so the speed the algorithm has always computed could not be
+     appended to it - but 0xF3 with the same blk carries the 0xF0 body byte for
+     byte, and fmt bit 3 adds the four bytes after the moving trackers. */
+  {k:'spd',  lb:'Normal + speed', fr:0xF3, ex:1, sdk:4,
+   d:{lo:0, hi:11, blk:0x2C, fmt:0x09},
+   n:'the standard frame, plus how fast each moving target is going and '
+    + 'whether it is coming or going.'},
+  /* The same again with the near stationary gates in FULL - distance, angle,
+     magnitude and speed for gates 0~3 - which is the one thing Parking's
+     magnitude-only gates cannot give you. Same blk as Parking; the difference
+     is fmt, MAG_ONLY off, and it is what turns 38 bytes into 66.
+
+     A mode to switch into for a measurement and back out of, not to sit in:
+     the gates are the band's own readings, before grouping and before any
+     tracker. The trackers keep being reported throughout, so nothing is lost
+     while you look. */
+  {k:'spdrg', lb:'Normal + speed + RG', fr:0xF3, ex:1, sdk:5,
+   d:{lo:0, hi:3, blk:0x2E, fmt:0x09},
+   n:'the standard frame, plus each moving target\'s speed, plus the four '
+    + 'nearest stationary range gates in full.'},
+
+  /* ---- engineering only, below here -------------------------------------
+     Not choices a product ships in, and each one is a support call waiting to
+     happen if a customer meets it by accident: RG is ten times the frame and
+     carries no trackers at all, Parking belongs to the tier that decodes it,
+     and Advanced is a descriptor editor. ?eng=1 brings them back.
+
+     hid rather than deleted, because they are still reachable, still correct,
+     and still what an engineer here needs. */
+  {k:'rg',   lb:'RG',       fr:0xF3, ex:1, sdk:2, hid:1,
+   d:{lo:0, hi:11, blk:0x03, fmt:0x00},
+   n:'the whole range-gate profile.'},
+  {k:'park', lb:'Parking',  fr:0xF3, ex:1, sdk:3, hid:1,
+   d:{lo:0, hi:3,  blk:0x2E, fmt:0x05},
+   n:'two moving targets, where one of them came to rest, and the near '
+    + 'stationary gates as magnitude.'},
+  {k:'adv',  lb:'Advanced', fr:0xF3, ex:1, hid:1,
+   n:'Live below shows the shape that took effect.'}
+];
+
+const outMode = ()=> OUT_MODES.find(m => m.k === v('f3Mode')) || OUT_MODES[1];
+
+/* The bytes for one mode. A literal b wins - Normal has a d as well, and that
+ * d describes 0xF0 rather than being something to send. Otherwise the
+ * descriptor, packed the one way f3Desc() packs it; Advanced has no d and
+ * reads the controls. */
+function outBytes(m){
+  if (m.b) return m.b;
+  const d = m.d || f3Desc();
+  return [0xF3, ((d.hi & 0x0F) << 4) | (d.lo & 0x0F), d.blk, d.fmt];
+}
+
+/* Where every block starts, from the descriptor the frame itself carries.
+ * Returns null when the arithmetic does not land exactly on the payload length:
+ * a frame that does not add up is one we have mis-parsed, and feeding the plot
+ * out of it would be worse than dropping it. */
+function f3Layout(p){
+  const rg = p[2], blk = p[3], fmt = p[4];
+  const at = {rg_sel:rg, blk:blk, fmt:fmt};
+  let o = 5;
+  if (blk & 0x04) { at.hum = o; o += 1; }
+  if (blk & 0x20) { at.fast = o; at.fastFull = !!(fmt & 0x01); o += at.fastFull ? 16 : 2; }
+  if ((blk & 0x20) && (fmt & 0x08)) { at.fspd = o; o += 4; }
+  if (blk & 0x08) { at.ep1 = o; o += 8; }
+  if (blk & 0x10) { at.ep2 = o; o += 8; }
+  if (blk & 0x40) { at.slow = o; o += (fmt & 0x02) ? 32 : 4; }
+  /* Before the RG block, which is where the firmware puts it so the one
+     variable-length block stays the tail of the frame. */
+  if (blk & 0x80) { at.room = o; o += 4; }
+  const nfb = (blk & 1) + ((blk >> 1) & 1);
+  if (nfb){
+    const nrg = ((rg >> 4) & 0x0F) - (rg & 0x0F) + 1;
+    at.rg = o; o += 2 * ((fmt & 0x04) ? 1 : 4) * Math.max(0, nrg) * nfb;
+  }
+  at.len = o;
+  return (o === p.length) ? at : null;
+}
+
+/* A slot the plot will not draw: st 0 is DEAD in both reporting forms. */
+const F3_DEAD = {d:0, a:0, m:0, st:0, cnt:0};
+
+function onF3Frame(p){
+  const at = f3Layout(p);
+  f3Live(p, at);
+  if (!at) return;
+  const dv = new DataView(p.buffer, p.byteOffset, p.byteLength);
+  /* Same 8-byte tracker block as 0xF0, same mm -> cm division, so this is
+   * decodeRadar()'s slot() reader with the offset supplied per block. */
+  const slot = (o)=>({ d: Math.floor(dv.getUint16(o) / 10),
+                       a: dv.getInt16(o + 2),
+                       m: dv.getUint16(o + 4),
+                       st: p[o + 6], cnt: p[o + 7] });
+  /* State-only trackers carry one byte each and no position at all, so there
+   * is nothing to plot from them - they are left dead rather than drawn at
+   * distance 0, which would put two targets on the radar's apex. */
+  const mv = (at.fast !== undefined && at.fastFull)
+           ? [slot(at.fast), slot(at.fast + 8)]
+           : [F3_DEAD, F3_DEAD];
+  /* Speed is one value per moving tracker, in the same order, so it goes onto
+   * the slot rather than beside it and showOut() needs no second lookup.
+   * Guarded on fastFull: a state-only descriptor leaves mv holding the shared
+   * F3_DEAD twice, and writing a speed onto that would leave it there on every
+   * frame after this one. */
+  if (at.fspd !== undefined && at.fast !== undefined && at.fastFull)
+    mv.forEach((s, k) => { s.sp = dv.getInt16(at.fspd + k * 2); });
+  const st = (at.ep1 !== undefined) ? slot(at.ep1) : F3_DEAD;
+  /* human_flag is a block like any other and can be left out of the
+   * descriptor. Derived from the trackers when it is: "not selected" and
+   * "nobody there" are not the same answer, and reporting 0 would say the
+   * second when only the first is true. */
+  const hum = (at.hum !== undefined) ? p[at.hum]
+            : ((mv[0].st > 0 || mv[1].st > 0 || st.st > 0) ? 1 : 0);
+  /* The near stationary gates, through the reader the Demo view already uses
+   * and test_demo_decode.js already covers. Null when the descriptor left the
+   * block out - see applyFrame(): a frame that does not carry a block has to
+   * SAY so, or the last frame that did carries on being displayed. */
+  const rg = (at.rg !== undefined) ? f3Rg(at, dv) : null;
+  const f = {frame_index: (p[0] << 8) | p[1], human: hum,
+             moving: mv, stationary: st, rg: rg};
+  /* sawAdv and formSettled() are the serial build's: it has no board to tell
+   * it the reporting form, so it works that out from the frames. The WiFi build
+   * has neither - the board reports saw_adv - and calling them there threw on
+   * every frame, before applyFrame(). */
+  if (typeof sawAdv !== 'undefined') {
+    if (formSettled() && (mv[0].st > 1 || mv[1].st > 1)) sawAdv = 1;
+    f.saw_adv = sawAdv;
+  }
+  f.fresh = 1; f.age = 0;
+  setSt('● Push — 0xF3','ok');
+  applyFrame(f);
+}
+
+const f3Hex = (v)=> '0x' + (v & 0xFF).toString(16).toUpperCase().padStart(2,'0');
+
+/* The Live panel. Reports the descriptor off the wire, not the controls, and
+ * says plainly whether the plot is being fed - a descriptor with the Fast
+ * trackers left at one state byte is legal, and silently draws nothing. */
+function f3Live(p, at){
+  const e = $('f3Live'); if (!e) return;
+  if (!at){
+    e.innerHTML = '<span class="err">Frame does not add up &mdash; LEN ' + p.length
+                + ' against descriptor ' + f3Hex(p[2]) + ' ' + f3Hex(p[3]) + ' '
+                + f3Hex(p[4]) + '. Dropped.</span>';
+    return;
+  }
+  const plots = (at.fast !== undefined && at.fastFull);
+  const rows = ['effective  rg_sel ' + f3Hex(at.rg_sel) + '   blk ' + f3Hex(at.blk)
+              + '   fmt ' + f3Hex(at.fmt) + '   LEN ' + at.len,
+    'fc ' + (((p[0] << 8) | p[1]) >>> 0)];
+  rows.push(plots
+    ? '<span class="ok">plot fed: Moving x2 full'
+      /* What the line is for - is the plot being fed - is answered by the
+         Moving trackers alone. */
+      + '</span>'
+    : '<span class="chg">plot not fed &mdash; needs Moving trackers x2 with '
+    + 'Moving trackers full</span>');
+  const skipped = [];
+  if (at.fspd !== undefined) skipped.push('Moving mean speed 4 B');
+  /* at.ep2 is parsed and skipped like the rest; it is simply not listed, for
+     the same reason the switch is not drawn. */
+  if (at.slow !== undefined) skipped.push('Stationary trackers ' + ((at.fmt & 0x02) ? 32 : 4) + ' B');
+  if (at.room !== undefined) skipped.push('Room peak 4 B');
+  if (at.rg   !== undefined) skipped.push('RG block ' + (at.len - at.rg) + ' B');
+  if (skipped.length) rows.push('parsed and skipped: ' + skipped.join(', '));
+  e.innerHTML = rows.join('<br>');
+}
+
+/* ---- the tab -------------------------------------------------------------- */
+/* One switch per row, straight into the panel. Not through .g: that grid keeps
+ * two 96 px control columns for inputs these rows do not have, which left the
+ * labels a third of the panel to sit in and wrapped every one of them. */
+function f3Bits(host, table, pfx){
+  table.forEach(it => {
+    const lab = document.createElement('label'); lab.className = 'ck f3row';
+    const cb  = document.createElement('input');
+    cb.type = 'checkbox'; cb.id = pfx + it.k; cb.checked = !!it.d;
+    cb.onchange = f3Preview;
+    const tx = document.createElement('span');
+    tx.innerHTML = it.lb + '  <span class="bit">' + f3Hex(it.b) + '</span>'
+                 + (it.plot ? '  <b>plot</b>' : '');
+    lab.appendChild(cb); lab.appendChild(tx);
+    /* Same hidRow class the CMD tab's hidden rows use, not a local
+       style.display: one class means one place to undo it, and whatever
+       reveals those reveals these. The element still goes IN - three loops
+       walk this whole table by id (apply a mode, lock, compose the blk byte)
+       and would dereference null without it. Present and not shown is exactly
+       Visible = false. */
+    if (it.hid && !ENG) lab.classList.add('hidRow');
+    host.appendChild(lab);
+  });
+}
+
+function buildF3Tab(){
+  const bh = $('f3BlkHost'); if (!bh || bh.childElementCount) return;
+  f3Bits(bh, F3_BLK, 'f3b_');
+  f3Bits($('f3FmtHost'), F3_FMT, 'f3f_');
+  [['f3_lo',0],['f3_hi',11]].forEach(([id, d])=>{
+    const s = $(id);
+    for (let i = 0; i <= 11; i++){
+      const o = document.createElement('option');
+      /* The number, and which end it is on the two that have an end. The label
+         above says which is which; this is for the moment the list is open and
+         the label is not next to the cursor.
+
+         near / far rather than nearest / farthest: the two controls share a
+         row, so each gets a 96 px column - 64 px of text once the padding,
+         border and arrow are out, and "11 (farthest)" measures 75.5. */
+      o.value = String(i);
+      o.textContent = i + (i === 0 ? ' (near)' : i === 11 ? ' (far)' : '');
+      s.appendChild(o);
+    }
+    s.value = String(d);
+  });
+  const sel = $('f3Mode');
+  /* NOT appended at all, rather than appended with hidRow. display:none on an
+     <option> is honoured by some browsers and quietly ignored by others, and a
+     mode that is invisible on one machine and selectable on the next is worse
+     than either. An option that was never built cannot be picked anywhere.
+
+     outMode() falls back to OUT_MODES[1] (Normal) when the key is not in the
+     list, so nothing downstream needs to know this happened. */
+  OUT_MODES.forEach(m => {
+    if (m.hid && !ENG) return;
+    const o = document.createElement('option');
+    o.value = m.k; o.textContent = m.lb;
+    sel.appendChild(o);
+  });
+  sel.value = 'on';
+  /* Everything but Output Mode is engineering.
+   *
+   * What is left is the one control a product integrator uses: pick a mode,
+   * press ENTER. The panels below it describe the SHAPE of the chosen mode -
+   * which gates, which blocks, which quantities - and f3Snap() has always
+   * disabled every one of them for every mode except Advanced, which is
+   * itself ?eng=1 now. So they were already a read-only picture, and a
+   * read-only picture of a thing the customer did not choose is just a wall
+   * of jargon between them and the button.
+   *
+   * The LEN and airtime line in the Output Mode panel survives, which is the
+   * part of that picture anybody actually acts on.
+   *
+   * hidRow, NOT removal. f3Snap() and f3Desc() dereference every one of these
+   * controls unconditionally, and f3Preview() routes the two speed modes
+   * through f3Len(f3Desc()) - so taking them out of the DOM throws on the
+   * first visit to this tab and the mode selector never gets built at all. */
+  if (!ENG)
+    ['f3PanRange','f3PanBlk','f3PanFmt','f3PanLive']
+      .forEach(id => { const e = $(id); if (e) e.classList.add('hidRow'); });
+  f3Snap();
+}
+
+/* The switches follow the mode.
+ *
+ * Every mode but two has a shape of its own, and leaving the switches on
+ * whatever was last set would be showing the wrong frame beside the right
+ * name. Off is one exception: it stops the stream and the module keeps what it
+ * had, so there is nothing to move them to. Advanced is the other, by
+ * definition.
+ *
+ * Disabled rather than hidden for the fixed modes. Showing them is the point -
+ * it is what stops "Parking" being an opaque word - but a control that can be
+ * edited and is not sent would be a lie. Advanced is where they are yours, and
+ * it starts from wherever the last fixed mode left them, which is a useful
+ * place to start from. */
+function f3Snap(){
+  const m = outMode();
+  if (m.d) {
+    F3_BLK.forEach(it => { $('f3b_' + it.k).checked = !!(m.d.blk & it.b); });
+    F3_FMT.forEach(it => { $('f3f_' + it.k).checked = !!(m.d.fmt & it.b); });
+    $('f3_lo').value = String(m.d.lo);
+    $('f3_hi').value = String(m.d.hi);
+  }
+  const lock = (m.k !== 'adv');
+  F3_BLK.forEach(it => { $('f3b_' + it.k).disabled = lock; });
+  F3_FMT.forEach(it => { $('f3f_' + it.k).disabled = lock; });
+  $('f3_lo').disabled = lock; $('f3_hi').disabled = lock;
+  /* The label text greys with the control: a disabled box beside black words
+     reads as a rendering fault rather than as a state. */
+  [$('f3BlkHost'), $('f3FmtHost'), $('f3_lo').parentNode]
+    .forEach(h => { if (h) h.classList.toggle('f3lock', lock); });
+  f3Preview();
+}
+
+function f3Desc(){
+  let blk = 0, fmt = 0;
+  F3_BLK.forEach(it => { if ($('f3b_' + it.k).checked) blk |= it.b; });
+  F3_FMT.forEach(it => { if ($('f3f_' + it.k).checked) fmt |= it.b; });
+  const lo = parseInt(v('f3_lo')) || 0, hi = parseInt(v('f3_hi')) || 0;
+  return {rg: ((hi & 0x0F) << 4) | (lo & 0x0F), blk: blk, fmt: fmt, lo: lo, hi: hi};
+}
+
+/* The LEN the module will send, from the same formula the firmware uses. Worth
+ * having in front of the operator before ENTER: at 20 fps the difference
+ * between the boot default and an RG-free descriptor is most of the link. */
+function f3Len(d){
+  const nrg = Math.max(0, (d.hi < d.lo ? d.lo : d.hi) - d.lo + 1);
+  const nfb = (d.blk & 1) + ((d.blk >> 1) & 1);
+  return 5 + ((d.blk & 0x04) ? 1 : 0)
+           + ((d.blk & 0x20) ? ((d.fmt & 0x01) ? 16 : 2) : 0)
+           + (((d.blk & 0x20) && (d.fmt & 0x08)) ? 4 : 0)
+           + ((d.blk & 0x08) ? 8 : 0)
+           + ((d.blk & 0x10) ? 8 : 0)
+           + ((d.blk & 0x40) ? ((d.fmt & 0x02) ? 32 : 4) : 0)
+           + ((d.blk & 0x80) ? 4 : 0)
+           + (nfb ? 2 * ((d.fmt & 0x04) ? 1 : 4) * nrg * nfb : 0);
+}
+
+function f3Preview(){
+  const e = $('f3Res'); if (!e) return;
+  const m = outMode();
+  if (m.k === 'off') {
+    e.textContent = 'Nothing sent. The module keeps running, and keeps its shape.';
+    return;
+  }
+  /* The descriptor itself is not repeated here - it is on the controls above,
+   * and the frame carries the one that actually took effect anyway.
+   *
+   * The time is for the whole frame on the wire, len + 7 bytes once the header
+   * and CRC are counted, at ten bits a byte. That is what a host has to be
+   * ready to read inside one 50 ms frame period, which is the question the
+   * number exists to answer.
+   *
+   * len off the table for the two fixed frames: f3Len() counts a 0xF3 header
+   * and 0xF0 and 0xF2 have their own, so it would be wrong by a few bytes in
+   * the one place the number is not an estimate. */
+  const len = m.len || f3Len(f3Desc());
+  e.innerHTML = '0x' + m.fr.toString(16).toUpperCase()
+              + ' &mdash; frame LEN ' + len + ' &mdash; '
+              + ((len + 7) * 10 / 115200 * 1000).toFixed(1) + ' ms at 115200 8N1'
+              + (m.ex || !ENG ? '' : ' &mdash; fixed frame; the switches show what its body carries');
+}
+
+/* One sender for every mode. Each mode's bytes come off OUT_MODES, so the list
+ * the operator picks from and the payload that goes out are one thing - a mode
+ * that appears in the selector and nowhere else cannot happen.
+ *
+ * The two 0xF3 modes carry the descriptor with the mode byte so the two land
+ * together, which is what stops a frame arriving in a shape the page has not
+ * been told about. The command number is in this comment, which is where it is
+ * useful.
+ *
+ * The confirmation says what was asked for in the same words the control
+ * uses. */
+async function applyOut(btn){
+  const m = outMode();
+  btn.classList.add('busy');
+  /* Two verbs, because the module offers two ways in and the named modes are
+     the ones the SDK documents - sending those as a descriptor would be this
+     page deciding to take the long way round. Only Advanced has no name, and it
+     is the one that carries a descriptor of its own.
+     lo and hi come back out of the packed rg_sel byte the frame uses. */
+  if (m.sdk !== undefined) {
+    await postCmd('output:' + m.sdk);
+  } else {
+    const b = outBytes(m);
+    await postCmd('f3:' + (b[1] & 0x0F) + ':' + ((b[1] >> 4) & 0x0F)
+                        + ':' + b[2] + ':' + b[3]);
+  }
+  btn.classList.remove('busy');
+  outOff = (m.k === 'off');
+  if (outOff) heldAt = performance.now();
+  if (outOff && wsUp) setSt('● Push (' + heldWhy() + ')','');
+  $('f3Res').innerHTML = '<span class="ok">Output Mode: ' + m.lb + '</span>  &mdash; ' + m.n;
+}
+
+/* ===== Demo view ============================================================
+ * What the frame said, field by field.
+ *
+ * The plot draws the target the algorithm settled on. This shows the readings
+ * it settled from, including the blocks the plot has no way to represent: the
+ * four Slow trackers, the second EPR, and the per-range-gate row behind each of
+ * them. That is the whole reason 0xF2 and 0xF3 exist.
+ *
+ * Customer wording throughout: Moving and Stationary. Fast and Slow are the
+ * firmware's names for the two filter banks and appear only as the small
+ * parenthetical beside each heading, so a screenshot taken here reads the same
+ * way as the rest of the page and as the datasheet.
+ *
+ * CONTRACT: the demo model holds WIRE units exactly as the frame carried them -
+ * millimetres, tenths of a degree, raw magnitudes. The renderer is the only
+ * place that divides. Anything that reads a frame fills the same shape:
+ *
+ *   {src, desc, human, magSrc, moving, movFull, movSpd,
+ *    stationary, slowFull, epr:[nearest, 2nd], roomMax, rg}
+ *
+ * A block the frame left out is null rather than zeroed: "not selected" and
+ * "nothing there" are different answers and the view says which.
+ * ========================================================================= */
+let curView = 'plot';
+
+/* The chrome a customer should never meet.
+
+   Two things, one place, because they are one decision: what is on this page
+   for somebody integrating the module, and what is here for us.
+
+   The switcher is engineering-only.
+ *
+ * Demo shows every block a 0xF3 frame CAN carry - twelve gates across two
+ * bands, the four Slow trackers, both end points, the room peak. None of the
+ * three modes a customer selects carries more than a quarter of that, so what
+ * a customer meets there is mostly a table of dashes. What they do want out of
+ * it - the near stationary gates - now sits on the plot beside the targets.
+ *
+ * It stays, unchanged, for ?eng=1: it is the only view of the full range-gate
+ * profile, which is itself an engineering mode.
+ *
+ * The whole switcher goes rather than just the Demo button: one button that
+ * selects the view you are already in is not a control, it is furniture. The
+ * WiFi build has no switcher at all, hence the guard. */
+function hideEngOnlyChrome(){
+  if (ENG) return;
+  const v = $('views');  if (v) v.classList.add('hidRow');
+)HTMLEOF"
+R"HTMLEOF(
+
+}
+
+function showView(which){
+  const demo = (which === 'demo');
+  curView = which;
+  $('vw_plot').classList.toggle('on', !demo);
+  $('vw_demo').classList.toggle('on',  demo);
+  /* #outHost goes with the plot: in the narrow layouts relayout() parks the
+   * presence strip and the readout table there, and leaving them under the
+   * Demo tables would show the same three numbers twice. */
+  document.querySelector('.radarwrap').hidden = demo;
+  $('outHost').hidden = demo;
+  $('demoPane').hidden = !demo;
+  /* Draw again on the way back rather than waiting for the next frame: on a
+   * module that has been stopped, or is mid-reconnect, that frame never comes
+   * and the plot would stay blank. */
+  if (demo) demoRender(); else draw(lastD);
+}
+
+/* ---- decode: the rest of a 0xF3 frame ----------------------------------- */
+
+/* The RG block, in the order Build_F3_Payload writes it:
+ *
+ *   mag only    RG -> bank
+ *   otherwise   quantity -> RG -> bank, with
+ *               q0 dist_mm   q1 angle_tenth   q2 mag_inner   q3 TH_spd
+ *
+ * Bank order is fixed by the firmware's loop over the filter-bank index, so
+ * Moving (bank 0) always precedes Stationary (bank 1), and a descriptor
+ * carrying only one of them leaves no gap where the other would have been.
+ *
+ * dist_mm is the only unsigned quantity. angle_tenth, mag_inner and TH_spd are
+ * all int16 in the firmware and are cast to uint16 purely to be written
+ * big-endian, so reading them unsigned would turn every negative angle into
+ * about 65000. */
+function f3Rg(at, dv){
+  const lo = at.rg_sel & 0x0F, hi = (at.rg_sel >> 4) & 0x0F;
+  const banks = [];
+  if (at.blk & 0x01) banks.push('mov');
+  if (at.blk & 0x02) banks.push('sta');
+  const magOnly = !!(at.fmt & 0x04), n = Math.max(0, hi - lo + 1);
+  const g = {lo:lo, hi:hi, banks:banks, magOnly:magOnly, q:{}};
+  const SIGNED = {dist:0, ang:1, mag:1, spd:1};
+  let o = at.rg;
+  (magOnly ? ['mag'] : ['dist','ang','mag','spd']).forEach(q => {
+    g.q[q] = {};
+    banks.forEach(b => { g.q[q][b] = []; });
+    for (let i = 0; i < n; i++)
+      banks.forEach(b => { g.q[q][b].push(SIGNED[q] ? dv.getInt16(o) : dv.getUint16(o));
+                           o += 2; });
+  });
+  return g;
+}
+
+function f3Demo(p, at, dv, hum){
+  if (!at) return null;
+  const sl = (o)=>({d:dv.getUint16(o), a:dv.getInt16(o + 2), m:dv.getUint16(o + 4),
+                    st:p[o + 6], cnt:p[o + 7]});
+  const g = {src:'0xF3', desc:{rg:p[2], blk:p[3], fmt:p[4]}, human:hum,
+             magSrc:'mag_inner', moving:null, movFull:!!at.fastFull, movSpd:null,
+             stationary:null, slowFull:!!(at.fmt & 0x02), epr:[null, null],
+           roomMax:null, rg:null};
+  if (at.fast !== undefined)
+    g.moving = at.fastFull ? [sl(at.fast), sl(at.fast + 8)]
+                           : [{st:p[at.fast]}, {st:p[at.fast + 1]}];
+  /* Present only while the slot is alive - the firmware zeroes it for DEAD and
+   * HIDDEN rather than leaking a hidden tracker's speed. */
+  if (at.fspd !== undefined) g.movSpd = [dv.getInt16(at.fspd), dv.getInt16(at.fspd + 2)];
+  if (at.ep1  !== undefined) g.epr[0] = sl(at.ep1);
+  if (at.ep2  !== undefined) g.epr[1] = sl(at.ep2);
+  if (at.slow !== undefined)
+    g.stationary = [0,1,2,3].map(k => g.slowFull ? sl(at.slow + k * 8)
+                                                 : {st:p[at.slow + k]});
+  if (at.room !== undefined)
+    g.roomMax = [dv.getUint16(at.room), dv.getUint16(at.room + 2)];
+  if (at.rg !== undefined) g.rg = f3Rg(at, dv);
+  return g;
+}
+
+/* ---- render -------------------------------------------------------------
+ * Range gate only, for now. f3Demo() still lifts the trackers and both EPRs
+ * out of the frame - they are decoded and covered by test_demo_decode.js - but
+ * nothing draws them here: the plot and the readout table already answer
+ * "where is the target", and this view exists for the one thing they cannot
+ * show, which is what every gate reported before the tracker was chosen.
+ * ========================================================================= */
+
+/* Per-gate magnitude background.
+ * Fixed thresholds, deliberately not scaled to the noise floor: the point is to
+ * recognise a level across sessions and gain settings, which a moving scale
+ * would defeat.
+ *
+ * The first band returns null rather than white. White is what clWindow means
+ * on a white form; here the equivalent is "leave the cell alone". */
+const MAG_LADDER = [
+  [ 250, null],
+  [ 500, 'rgb(255,255,160)'],
+  [ 750, 'rgb(180,255,180)'],
+  [1000, 'rgb(160,210,255)'],
+  [1500, 'rgb(220,170,255)'],
+  [2000, 'rgb(80,200,120)'],
+  [Infinity, 'rgb(80,140,255)']
+];
+const magColor = (m)=> (MAG_LADDER.find(b => m <= b[0]) || [0, null])[1];
+
+/* One decimal for the two that are tenths of a unit, plain integers for the
+ * rest, and '---' for a quantity this frame did not carry - the same three
+ * shapes the C++ fields use. */
+const dgD = (v)=> (v === undefined || v === null) ? '---' : (v / 10).toFixed(1);
+const dgI = (v)=> (v === undefined || v === null) ? '---' : String(v);
+
+function demoLegend(){
+  const lb = ['&le;250','&le;500','&le;750','&le;1000','&le;1500','&le;2000','&gt;2000'];
+  return '<div class="mleg"><span>Mag</span>' + MAG_LADDER.map((b, i) =>
+    '<i class="' + (b[1] ? '' : 'off') + '"' + (b[1] ? ' style="background:' + b[1] + '"' : '')
+    + '>' + lb[i] + '</i>').join('') + '</div>';
+}
+
+/* The shape the grid takes before anything has arrived, and whenever a frame
+ * carries no range-gate block at all.
+ *
+ * It is the firmware's own boot descriptor - rg_sel 0xB0, both banks, all four
+ * quantities - because that is the largest the grid ever gets, and a layout is
+ * only worth checking at its widest. Drawn with every cell empty rather than
+ * withheld until a frame turns up: a panel that appears only once a module is
+ * connected cannot be looked at while the layout is being decided, and an
+ * operator who switches to this tab and sees nothing has no way to tell a page
+ * with no data from a page that is broken.
+ *
+ * q is empty on purpose. demoGrid() reads every value through it, so each cell
+ * falls through to '---' with no separate placeholder path to keep in step with
+ * the real one. */
+const DEMO_EMPTY_RG = {lo:0, hi:11, banks:['mov','sta'], magOnly:false, q:{}};
+
+function demoGrid(g){
+  const live = !!(g && g.rg && g.rg.banks.length);
+  const rg = live ? g.rg : DEMO_EMPTY_RG;
+  /* Magnitude first in each bank, not third. It is the coloured cell, so
+   * leading the group puts the whole ladder in one unbroken column against
+   * the group edge - which is how a field of them is read at a glance -
+   * instead of a stripe buried between Ang and Spd. Display order only:
+   * f3Rg() still walks the wire in the order the firmware writes it. */
+  const qs = rg.magOnly ? ['mag'] : ['mag','dist','ang','spd'];
+  const QH = {dist:'Dist', ang:'Ang', mag:'Mag', spd:'Spd'};
+  const BH = {mov:'Moving', sta:'Stationary'};
+  /* Moving and Stationary get a gutter between them, as a real column rather
+   * than a border on the cell that happens to be first. A border would sit
+   * inside .rgc's own box and shift its text by a pixel; a 12 px column with a
+   * hairline down the middle keeps every cell identical and gives the eye
+   * somewhere to land when it crosses from one bank to the other. Only when
+   * there are two banks to separate - one bank draws no gutter at all. */
+  const SEP = '<span class="rgsep"></span>';
+  const gut = rg.banks.length > 1;
+  const tpl = 'grid-template-columns:54px '
+            + rg.banks.map(() => 'repeat(' + qs.length + ',1fr)').join(' 12px ') + ';';
+  const join = (parts)=> parts.join(gut ? SEP : '');
+  let h = '';
+  /* Two header rows: the bank spans its own quantities, so which column belongs
+   * to which bank is read once at the top rather than inferred per cell. */
+  h += '<div class="rgrow rghd" style="' + tpl + '"><span class="rglb"></span>'
+     + join(rg.banks.map(b => '<span class="rgbk" style="grid-column:span ' + qs.length
+                            + '">' + BH[b] + '</span>')) + '</div>';
+  h += '<div class="rgrow rghd" style="' + tpl + '"><span class="rglb">RG</span>'
+     + join(rg.banks.map(() => qs.map(q => '<span>' + QH[q] + '</span>').join('')))
+     + '</div>';
+  for (let i = 0; i <= rg.hi - rg.lo; i++){
+    h += '<div class="rgrow" style="' + tpl + '">'
+       + '<span class="rglb">' + (rg.lo + i) + '</span>';
+    rg.banks.forEach((b, bi) => { if (bi && gut) h += SEP; qs.forEach(q => {
+      const v = rg.q[q] ? rg.q[q][b][i] : undefined;
+      if (q === 'mag'){
+        const c = (v === undefined || v === null) ? null : magColor(v);
+        h += '<span class="rgc' + (c ? ' lit' : '') + '"'
+           + (c ? ' style="background:' + c + '"' : '') + '>' + dgI(v) + '</span>';
+      } else {
+        h += '<span class="rgc">' + ((q === 'dist' || q === 'ang') ? dgD(v) : dgI(v))
+           + '</span>';
+      }
+    }); });
+    h += '</div>';
+  }
+  h += demoLegend();
+  if (!live)
+    h += '<div class="dnote">Empty: no frame so far has carried a range-gate '
+       + 'block. The default 0xF0 output does not have one &mdash; pick a mode '
+       + 'that does on the UART Output tab. The grid above is the boot '
+       + 'descriptor, drawn at full width so the layout is the one a live '
+       + 'frame will fill.</div>';
+  h += '<div class="dnote">Distance in cm and angle in degrees, both one decimal; '
+     + 'magnitude and speed threshold as the module reports them. Magnitude is '
+     + '<b>' + ((g && g.magSrc) || '-') + '</b>'
+     + ((g && g.magSrc) === 'mag_inner'
+        ? ', the muxed magnitude the detector consumes. With en_kill_outside on, '
+        + 'gates past the room range report 0 &mdash; expected, and the distance '
+        + 'and angle columns are unaffected by it.'
+        : (g && g.magSrc) === 'MAG_out'
+        /* Unreachable since the 0xF2 frame went: every live path reports
+           mag_inner. Kept so a hand-built model in a test still renders. */
+        ? ', which is a different quantity from the mag_inner a 0xF3 frame '
+        + 'reports; the colours are the same ladder either way.'
+        : '.')
+     + '</div>';
+  return h;
+}
+
+/* One block of tracker slots, under the grid, in the order the C++ Demo page
+ * puts them: Fast trackers, then the end points, then the Slow trackers.
+ *
+ * Drawn even when the frame did not carry the block - every cell '---', the
+ * same contract the grid follows - so switching between descriptors does not
+ * change the height of the panel and a missing block is visibly missing rather
+ * than absent.
+ *
+ * Magnitude leads here too, for the same reason it does in the grid, but it is
+ * NOT given the colour ladder: the C++ colours the per-gate magnitudes only,
+ * and a tracker's magnitude is an aggregate over the gates it was built from,
+ * so painting it on the same scale would invite a comparison that does not
+ * hold.
+ *
+ * No range-gate column, which the C++ has: the wire record for a tracker is
+ * distance, angle, magnitude, state and counter, and there is no gate index in
+ * it. State and counter are shown instead, which is what 0xF0 / 0xF2 / 0xF3
+ * actually carry.
+ */
+function demoSlots(lb, inner, labels, arr, full, spd){
+  /* Dist, Ang, Mag for a slot row. The range-gate column is
+   * not reproducible here, since the wire record for a tracker carries no
+   * gate index. State takes that leading column instead: it is the same
+   * kind of reading - what this slot IS before what it measured - and the
+   * two groups it belongs to are captioned State on the C++ form. Cnt and
+   * the mean speed, which that form has no column for either, follow the
+   * three it does.
+   *
+   * Note this is NOT the grid's order above, and deliberately so: a gate row
+   * there reads Rssi(91) Mag(182) Dist(270) Ang(376) TH_spd(482), and with
+   * no RSSI quantity in 0xF3 that leaves magnitude first. The two orders
+   * differ on the C++ form as well. */
+  const qs = spd ? ['st','dist','ang','mag','cnt','spd']
+                 : ['st','dist','ang','mag','cnt'];
+  const QH = {mag:'Mag', dist:'Dist', ang:'Ang', st:'State', cnt:'Cnt', spd:'Spd'};
+  const tpl = 'grid-template-columns:78px repeat(' + qs.length + ',1fr);';
+  /* inner is optional: the tracker groups say Moving and Stationary, as the
+     switches on the previous tab do. EPR keeps one, because that block has no
+     other name here. */
+  let h = '<div class="dh">' + lb
+        + (inner ? ' <small>(' + inner + ')</small>' : '') + '</div>';
+  h += '<div class="rgrow rghd" style="' + tpl + '"><span class="rglb"></span>'
+     + qs.map(q => '<span>' + QH[q] + '</span>').join('') + '</div>';
+  labels.forEach((name, i) => {
+    const s = arr[i];
+    h += '<div class="rgrow" style="' + tpl + '">'
+       + '<span class="slb">' + name + '</span>';
+    qs.forEach(q => {
+      let v;
+      /* A state-only block carries the state byte and nothing else, so the
+       * three position columns say so rather than showing a stale or zeroed
+       * reading. */
+      if (q === 'st')        v = s ? s.st  : undefined;
+      else if (q === 'cnt')  v = s ? s.cnt : undefined;
+      else if (q === 'spd')  v = spd ? spd[i] : undefined;
+      else if (s && full)    v = s[q === 'mag' ? 'm' : q === 'dist' ? 'd' : 'a'];
+      h += '<span class="rgc">'
+         + ((q === 'dist' || q === 'ang') ? dgD(v) : dgI(v)) + '</span>';
+    });
+    h += '</div>';
+  });
+  return h;
+}
+
+function demoRender(){
+  const pane = $('demoPane'); if (!pane) return;
+  /* Deliberately not skipped while the pane is hidden. Nothing calls this on a
+   * timer: paintFrame() only calls it while Demo is the view on show, and
+   * showView() calls it on the way in. What the hidden case is for is the one
+   * call below, which fills the pane at load so the grid is already there the
+   * first time anyone switches to it. */
+  const g = (lastD && lastD.demo) ? lastD.demo : null;
+  const src = $('demoSrc'), body = $('demoBody');
+  /* The grid is drawn either way - see DEMO_EMPTY_RG. Only the header line
+   * distinguishes "nothing has arrived" from a live frame. */
+  const bits = g
+    ? ['<span>frame <b>' + g.src + '</b></span>',
+       '<span>#<b>' + ((lastD && lastD.frame_index) || 0) + '</b></span>',
+       '<span>presence <b>' + (g.human ? 'YES' : 'no') + '</b></span>']
+    : ['<span>frame <b>&mdash;</b></span>',
+       '<span>#<b>&mdash;</b></span>',
+       '<span>presence <b>&mdash;</b></span>'];
+  if (g && g.desc) bits.push('<span>descriptor <b>' + f3Hex(g.desc.rg) + ' '
+                      + f3Hex(g.desc.blk) + ' ' + f3Hex(g.desc.fmt) + '</b></span>');
+  /* Beside the descriptor rather than in a table of its own: it is one number
+     per band, and the use for it is comparing a return against the room behind
+     it - which means having it in view while reading the slots. */
+  if (g && g.roomMax) bits.push('<span>room peak <b>' + g.roomMax[0]
+                      + ' / ' + g.roomMax[1] + '</b></span>');
+  src.innerHTML = bits.join('');
+  /* Grid first, slots under it, in the C++ page's own order. */
+  const mv = (g && g.moving)     ? g.moving     : [null, null];
+  const ep = (g && g.epr)        ? g.epr        : [null, null];
+  const sl = (g && g.stationary) ? g.stationary : [null, null, null, null];
+  body.innerHTML = demoGrid(g)
+    + demoSlots('Moving', '', ['Moving 0','Moving 1'],
+                mv, !g || g.movFull !== false, (g && g.movSpd) || null)
+    /* The end-point group is decoded into ep above and deliberately not drawn:
+       it is an extension of the stationary slots, and the demo shows those. */
+    + demoSlots('Stationary', '',
+                ['Stationary 0','Stationary 1','Stationary 2','Stationary 3'],
+                sl, !!(g && g.slowFull), null);
+}
+
+/* Fill it once at load, so the empty grid exists before the first switch
+ * rather than being built on the way in.
+ *
+ * Deferred rather than called here: this block is injected above the rest of
+ * the page's script, and demoRender() reads lastD, which is declared further
+ * down. A let declaration is not hoisted into scope, so calling it at this
+ * point would throw. A zero timeout puts it after the whole script has run,
+ * which is the only ordering guarantee worth relying on here. */
+setTimeout(demoRender, 0);
+/* Same deferral, same reason: #views is injected further down the page in
+   the UART build and does not exist at all in the WiFi one. */
+setTimeout(hideEngOnlyChrome, 0);
+
+
+/* Where an 0xF3 frame comes from, over HTTP.
+ *
+ * The serial build has a frame layer and routes 0xF3 into onF3Frame() as it
+ * arrives. This build has none - frames are decoded on the board and reach the
+ * page as JSON - so the one thing the board cannot digest for us, it latches
+ * raw and serves here. Same bytes, same decoder, different road.
+ *
+ * seq, not the payload, is what decides: re-drawing a frame already on screen
+ * would make the byte view flicker for nothing. Polls only while the tab is the
+ * one being looked at, because nothing else on the page uses this frame.
+ *
+ * The generator replaces this whole function for the serial build, where the
+ * router does the job and a poller would be a second source of the same thing. */
+let f3Seq = 0, f3Timer = 0;
+
+async function f3Poll(){
+  if (!f3Live_shown()) return;
+  try {
+    const r = await fetch(base() + '/f3', {cache:'no-store'});
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d || !d.seq || d.seq === f3Seq || !d.len) return;
+    f3Seq = d.seq;
+    const p = new Uint8Array(d.len);
+    for (let i = 0; i < d.len; i++) p[i] = parseInt(d.hex.substr(i * 2, 2), 16);
+    onF3Frame(p);
+  } catch (e) { /* a poll that fails is a poll; the next one will do */ }
+}
+
+/* Only while the tab is visible. */
+function f3Live_shown(){
+  const p = $('pane_f3');
+  return !!(p && p.classList.contains('on'));
+}
+
+function f3PollStart(){
+  if (f3Timer) return;
+  f3Timer = setInterval(f3Poll, 500);
+}
+
+
+
+
+/* The two sensitivity presets, transcribed from kw307_set_motion_sensitivity()
+ * and kw307_set_stationary_sensitivity() in KW307_api.c. The SDK carries them
+ * one way only - it never needs to go back - so a page that wants to name the
+ * level a module is sitting on has to hold the table itself.
+ *
+ * Both are unique across all ten rows, which is what makes the reverse sound:
+ * motion by (fast khpf, spd_th, pass_initial), stationary by (slow khpf, Nd,
+ * LPF, baseline pair). A module matching no row has been tuned field by field,
+ * and that is precisely when "-" earns its place. */
+const MOT_LEVELS = [ {k:4, s:250,  p:4}, {k:3, s:250,  p:4}, {k:3, s:250,  p:8},
+                     {k:3, s:500,  p:4}, {k:2, s:500,  p:4}, {k:2, s:500,  p:8},
+                     {k:2, s:1000, p:4}, {k:1, s:500,  p:8}, {k:1, s:1000, p:4},
+                     {k:1, s:1000, p:8} ];
+const STA_LEVELS = [ {k:7,n:3,l:8, a:0}, {k:7,n:2,l:8, a:0}, {k:7,n:1,l:8, a:0},
+                     {k:7,n:0,l:8, a:0}, {k:6,n:0,l:8, a:0}, {k:5,n:0,l:8, a:0},
+                     {k:4,n:0,l:16,a:0}, {k:4,n:0,l:16,a:1}, {k:3,n:0,l:32,a:1},
+                     {k:2,n:0,l:64,a:1} ];
+
+
+/* Motion, from the wire. `dop` is the six bytes of CMD 0x17; motion owns [0]
+ * and [1], stationary owns [3]..[5].
+ *
+ * A name is claimed only when EVERY value the preset writes is still there.
+ * The preset is five writes - CMD 0x17[0] and [1], PID 0x26, PID 0x31, PID
+ * 0x1A, PID 0x28 - and the last two are derived, spd_th x 2 and spd_th x
+ * pass_initial, so they cannot tell one level from another. They can still
+ * tell "this is that level" from "this was that level until somebody moved
+ * one of them", and that is the question this row answers. Both are editable
+ * rows on the Tracker Optimization tab and kw307_set_moving_tracker() writes
+ * both, so they move for real; when they have, the module is running a mix
+ * that no level describes and the row says so rather than naming the level
+ * whose other four values happen to survive.
+ *
+ * kw307_get_motion_sensitivity() compares all six, not just the
+ * (khpf, spd_th, pass_initial) triple that says WHICH level it is.
+ *
+ * Any motion the same: khpf 7 / Nd 3 is the marker - no level writes khpf 7 - but
+ * the switch alone is not the setting, so the speed set it comes with has to
+ * be intact too (spd_th 1, pass_initial 4, and therefore 2 and 0).
+ *
+ * The level is -1 for any-motion, 0~9 for a named one, and null when nothing
+ * describes the module - either because CMD 0x17 never answered or because the
+ * six values match no row. */
+function motionFromWire(dop, p26, p31, p1a, p28){
+  if (!dop || dop.length < 2) return null;
+  if (dop[0] === 7 && dop[1] === 3)
+    return (p26 === 1 && p31 === 4 && p1a === 2 && p28 === 0) ? -1 : null;
+  for (let i = 0; i < MOT_LEVELS.length; i++){
+    const t = MOT_LEVELS[i];
+    if (dop[0] === t.k && dop[1] === 0 && p26 === t.s && p31 === t.p &&
+        p1a === t.s * 2 && p28 === t.s * t.p)
+      return i;
+  }
+  return null;
+}
+
+/* Stationary, from the wire. The slow-band triple names the level on its own
+ * for eight of the ten; L6 and L7 are the same filter and differ only by the
+ * 6 dB the top three take out at the receiver, so Baseband attenuator - CMD 0x32
+ * byte[2] - is consulted for those two and nothing else.
+ *
+ * Not the detection floors, PIDs 0x24 / 0x25: those are the Signal thresholds
+ * row on this same panel, and a level writes no floor. Set the baseband attenuator by hand to a value neither level uses and the pair still
+ * cannot be told apart - but that is one control, and it is the one the level
+ * actually writes. */
+function stationaryFromWire(dop, rbb){
+  if (!dop || dop.length < 6) return null;
+  const hit = [];
+  for (let i = 0; i < STA_LEVELS.length; i++){
+    const t = STA_LEVELS[i];
+    if (dop[3] === t.k && dop[4] === t.n && dop[5] === t.l) hit.push(i);
+  }
+  if (hit.length === 1) return hit[0];
+  /* The L6 / L7 pair, told apart by the 6 dB. */
+  for (const i of hit) if (rbb === STA_LEVELS[i].a) return i;
+  return null;
+}
+
+/* Read the 17 items and let the module overwrite the panel. Each item that
+ * differs is moved to what the module holds and named in the Frame log - "was ->
+ * now" for a plain value, just the item for one that went to Custom; the panel's
+ * own line only says the read happened. A composite the module matches no choice
+ * of goes to Custom, and Application is named last, from the values the read
+ * has just put on screen. */
+async function readSettings(btn, quiet){
+  if (btn) btn.classList.add('busy');
+  const S = await genFetch('setRes');
+  if (!S) { if (btn) btn.classList.remove('busy'); return null; }
+  notePower(S);
+  noteUrate(S);
+  noteAnt(S);
+
+  const lines = [], silent = [];
+  for (const it of GEN){
+    if (it.k === 'scene') continue;
+    if (it.gate && !gateOk(it, lastD)) continue;
+    if (slowSkip(it) || engSkip(it)) continue;
+    const was = genNow(it);
+    if (S[it.k] === undefined) { silent.push(it.lb); continue; }
+    const now = genArr(S[it.k]);
+    if (genSame(was, now)) continue;
+    const wl = genLabel(it, was);
+    genPut(it, now);
+    lines.push(genCustom(it) ? it.lb + ' \u2192 Custom'
+                             : it.lb + ': ' + wl + ' \u2192 ' + genLabel(it, genNow(it)));
+  }
+
+  sceneRefit(lines);
+  lockEnter();
+  if (typeof mirrorSettings === 'function') mirrorSettings();
+
+  frameLog.add('note', 'READ General' + (lines.length ? '' : ' \u00b7 no change'));
+  lines.forEach(l => frameLog.add('note', '  ' + l));
+  if (silent.length) frameLog.add('note', '  no response: ' + silent.join(', '));
+
+  const out = ['<span class="ok">&#10003; Read from the module'
+               + (lines.length ? ' &mdash; see Frame log' : ', no change') + '</span>'];
+  if (silent.length) out.push('<span class="err">&#10007; No response: ' + silent.join(', ') + '</span>');
+  $('setRes').innerHTML = out.join('<br>');
+  if (btn) btn.classList.remove('busy');
+  return {n: GEN.length, diff: lines.length, bad: 0, nr: silent.length, unnamed: 0};
+}
+
+/* Does the module still match the scene on screen?
+ *
+ * The module holds no scene. It holds the twenty-three fields a scene fills, so
+ * the only answerable question is whether those fields are still what that
+ * scene set them to - and the honest answer to it is the scene's own name.
+ *
+ * Asked of all five, because the question a read answers is "what IS the
+ * module", not "is it still what the box says". Switching the box to Desk
+ * sends nothing; pressing Check FW then has to come back Office if that is
+ * what the module is holding, exactly as the two sensitivities do.
+ *
+ * Ambiguity is refused rather than guessed. The five presets are pairwise
+ * distinguishable today - the closest pair, Office and Desk, differ in five
+ * fields - but a sixth scene, or an edit that narrows an existing one, could
+ * end that, and a name picked by table order would be a name nobody can trust.
+ * The one on screen wins a tie, since renaming a choice that still fits helps
+ * no one.
+ *
+ * The two sensitivities come in as levels rather than off their controls,
+ * because that is the form the comparison needs and the form readSettings has
+ * already worked out. A level of -1 means the module matches no level at all,
+ * which cannot match a scene either - the loop below rejects it without a
+ * special case.
+ *
+ * A row the module did not answer leaves its control where it was, so a scene
+ * can still fit on the strength of a value that was never confirmed. That is
+ * the same assumption every other row on the panel makes, and the no-response
+ * marks beside them are what says so.
+ */
+/* Application against what the panel now holds: the scene that fits, or
+ * Custom. A change goes on lines, for the Frame log. */
+function sceneRefit(lines){
+  const lv  = (id)=> isUnknown(id) ? null : parseInt(rd(id), 10);
+  const fit = sceneFit(lv('i_mot'), lv('i_sta'));
+  const sw  = isUnknown('i_scene') ? 'Custom' : labelOf('i_scene', rd('i_scene'));
+  if (fit === null) {
+    if (!isUnknown('i_scene')) { setUnknown('i_scene'); lines.push('Application \u2192 Custom'); }
+  } else if (isUnknown('i_scene') || parseInt(rd('i_scene'), 10) !== fit) {
+    wr('i_scene', fit);
+    lines.push('Application: ' + sw + ' \u2192 ' + labelOf('i_scene', fit));
+  }
+}
+
+function sceneFit(motLvl, staLvl){
+  const NUM = {gain:'i_gain', rmin:'i_rmin', rmax:'i_rmax', fov:'i_fov', shr:'i_shr',
+               hold:'i_hold', nf:'i_nf', ns:'i_ns',
+               mvmax:'i_mvmax', mvshow:'i_mvshow', stmax:'i_stmax', stshow:'i_stshow',
+               fsdist:'i_fsdist', fsfov:'i_fsfov', mstsec:'i_mstsec',
+               clspd:'i_clspd', cldev:'i_cldev'};
+  const CK  = {fsen:'i_fsen', msten:'i_msten', clen:'i_clen'};
+  const fits = (p)=> {
+    for (const k in NUM) if ((parseFloat(rd(NUM[k])) || 0) !== p[k]) return false;
+    for (const k in CK)  if ((rd(CK[k]) ? 1 : 0) !== (p[k] ? 1 : 0)) return false;
+    return motLvl === p.mot && staLvl === p.sta;
+  };
+  const hits = [];
+  SCENE_PRESETS.forEach((p, i) => { if (fits(p)) hits.push(i); });
+  if (!hits.length) return null;
+  if (hits.length === 1) return hits[0];
+  const onScreen = parseInt(rd('i_scene'), 10);
+  return (!isUnknown('i_scene') && hits.indexOf(onScreen) >= 0) ? onScreen : null;
+}
+
+/* Everything the page can ask for, in one pass, in the order the board can
+ * serve it: one HTTP client at a time and every read blocking its loop(), so
+ * these queue whether or not they are issued together. */
+async function readAll(quiet){
+  /* Stop at the first failure: it is the board, not the tab, and the other two
+   * would each spend a full RB_MS finding that out again. */
+  const a = await readCmdTab(null, true);
+  if (!a) return null;
+  const b = await readParamTab(null, true);
+  if (!b) return null;
+  const c = await readSettings(null, true);
+  const sum = (k)=> (a?a[k]:0) + (b?b[k]:0) + (c?c[k]:0);
+  if (!a && !b && !c) return null;
+  return {n:sum('n'), diff:sum('diff'), bad:sum('bad'), nr:sum('nr'),
+          unnamed:sum('unnamed')};
+}
+
+/* One Frame log line for a multi-tab read. Each tab has already written its
+ * own detail into its own box; this only says where to look. Not the status
+ * line: that is the link's, and the next frame would paint over it. */
+function reportRead(label, t){
+  if (!t)            { frameLog.add('note', label + ' \u2014 no reply to the read-back'); return; }
+  const where = ' (see General / Advanced / Tracker)';
+  if (t.bad + t.nr)  frameLog.add('note', label + ' \u2014 ' + (t.bad + t.nr) + ' unresolved' + where);
+  else if (t.unnamed)frameLog.add('note', label + ' \u2014 ' + t.unnamed + ' undecided, ENTER locked' + where);
+  else               frameLog.add('note', label + ' \u2014 panel taken from the module');
+}
+
+
+)HTMLEOF"
+R"HTMLEOF(
+function showTab(which){
+  ['main','cmd','param','f3'].forEach(t => {
+    const p = $('pane_' + t); if (!p) return;
+    p.classList.toggle('on', t === which);
+    $('tb_'   + t).classList.toggle('on', t === which);
+  });
+  /* Built on first view, not at load: two tabs' worth of DOM that nobody may
+   * open is wasted work on a phone. */
+  /* Mirror after building: a tab opened for the first time has just been filled
+   * with its table defaults, which is not what Settings has been saying.
+   *
+   * Only then. A tab that already exists holds either what its own READ got
+   * from the module or what Settings mirrored into it on the last change -
+   * upd() keeps it current - so mirroring again on every visit only ever
+   * replaced a read-back value with the level's, and the tab changed under
+   * the operator for switching to it. */
+  const fresh = (host)=> { const h = $(host); return !h || !h.childElementCount; };
+  if (which === 'cmd')   { const f = fresh('cmdHost');   buildCmdTab(); buildEqTab(); if (f) mirrorSettings(); }
+  if (which === 'param') { const f = fresh('paramHost'); buildParamTab(); if (f) mirrorSettings(); }
+)HTMLEOF"
+R"HTMLEOF(
+  if (which === 'f3')    buildF3Tab();
+  if (which === 'f3')    f3PollStart();
+}
+
+/* ===== Cutoff frequencies ===============================================
+ * Shown to 3 decimal places for HPF and 1 for LPF.
+ *
+ *   LPF:  fs * k / 256 / 2pi                   k = the raw R204 / R203 byte
+ *   HPF:  fs / 2^khpf / 2^(Nd+1) / 2pi         khpf and Nd together
+ *
+ * fs is the Sampling Rate row (CMD 0x34). The SDK writes both formulas at its
+ * 2 kHz default, but the filters are digital, so every corner moves with fs:
+ * 4 kHz doubles them, 1.6 kHz takes 0.8 of them. Until that row has been built
+ * the default is assumed, which is what a module nobody has changed runs.
+ *
+ * The register value is what goes on the wire; the Hz is only ever a readout.
+ * Nothing here is sent, so a rounding difference cannot reach the module. */
+const TWO_PI = 2 * Math.PI;
+const FS_HZ  = [4000, 2000, 1600, 1300];   /* sel 0~3, as kw307_set_sample_rate() names them */
+function fsHz(){
+  const e = $('x_52_fs');
+  return (e && FS_HZ[+e.value]) || 2000;
+}
+const lpfHz = (k)      => fsHz() * k / 256.0 / TWO_PI;
+const hpfHz = (khpf,nd)=> fsHz() / (1 << khpf) / (1 << (nd + 1)) / TWO_PI;
+
+/* ---- pick-lists for numeric fields -----------------------------------
+ * Every integer setting is a dropdown rather than a typed box: on a phone a
+ * list is faster than a keyboard and cannot produce a typo, and most of these
+ * are register values where a wrong digit is not obviously wrong on screen.
+ *
+ * Wide ranges carry a step instead of every value — an int16 cannot be
+ * enumerated, and 4000 entries would be worse than useless. The step is chosen
+ * per field to include the values the algorithm actually uses; the
+ * tooltip says what it is, so a value that is off-grid is visibly off-grid
+ * rather than silently unreachable.
+ *
+ * `fmt` decorates the option text: 'hz' for the LPF registers, 'x' for a plain
+ * number, or a unit suffix. */
+function rangeOpts(lo, hi, step, fmt){
+  const frag = document.createDocumentFragment();
+  const dec  = (step < 1) ? 2 : 0;
+  for (let k = lo; k <= hi + 1e-9; k += step){
+    const v = +k.toFixed(dec);
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = fmt === 'hz' ? v + '   (' + lpfHz(v).toFixed(1) + ' Hz)'
+                  : fmt          ? v + ' ' + fmt
+                  :                String(v);
+    frag.appendChild(o);
+  }
+  return frag;
+}
+
+/* Fill an empty <select> and select `def`. No-op if already populated, so it is
+ * safe to call again on a tab that has been opened before. */
+function fillRange(id, lo, hi, step, fmt, def){
+  const s = $(id);
+  if (!s || s.options.length) return;
+  s.appendChild(rangeOpts(lo, hi, step, fmt));
+  s.value = def;
+  /* A default that is not on the grid would leave the select blank and then
+   * send whatever the browser picked. Say so rather than drift silently. */
+  if (s.value === '' && s.options.length) { s.selectedIndex = 0; }
+}
+
+
+/* The four cutoff readouts on the CMD tab's 0x17 rows. HPF needs both of its
+ * controls, which is why there is one label per band rather than putting the
+ * frequency into a dropdown — and why this cannot live inside mkField(). */
+function cmdDspEcho(){
+  const g = (k)=> { const e = $('x_23_' + k); return e ? (+e.value || 0) : null; };
+  const set = (id, txt)=>{ const e = $(id); if (e) e.textContent = '  ' + txt; };
+  const fk = g('fk');
+  if (fk === null) return;                 /* tab not built yet */
+  set('hz_fh', hpfHz(fk, g('fn')).toFixed(3) + ' Hz');
+  set('hz_fl', lpfHz(g('fl')).toFixed(1) + ' Hz');
+  set('hz_sh', hpfHz(g('sk'), g('sn')).toFixed(3) + ' Hz');
+  set('hz_sl', lpfHz(g('sl')).toFixed(1) + ' Hz');
+}
+
+/* A click locks every action for at least 1 second. On release the FW-based
+ * lock is reapplied rather than blanket-enabling, so the buttons that were
+ * locked before the click (version not read yet) stay locked. */
+let cooldownRunning = false;
+async function withCooldown(action){
+  if (cooldownRunning) return;
+  cooldownRunning = true;
+  $('enter').disabled = true;
+  $('fwBtn').disabled = true;
+  document.querySelectorAll('.actBtn').forEach(b=>{ b.disabled = true; });
+  const floor = new Promise(r => setTimeout(r, 1000));
+  try {
+    await Promise.all([Promise.resolve(action()), floor]);
+  } finally {
+    cooldownRunning = false;
+    opDoneAt = performance.now();
+    $('fwBtn').disabled = false;                       /* always the way out */
+    $('nearBtn').disabled = false;                     /* display filter only */
+    applyLocks(lastD);
+  }
+}
+
+/* ENTER / WRITE / READ on the tabs: one press at a time, and the next no sooner
+ * than a second later. A double click used to start the same batch twice, two
+ * passes over one link interleaving their frames. withCooldown() holds every
+ * action button; the pressed one is greyed here as well, because the tab
+ * buttons are not .actBtn and it would leave them live. Locks are reapplied
+ * after, so a button that FW keeps locked stays locked. */
+async function oneClick(btn, fn){
+  if (cooldownRunning) return;
+  btn.disabled = true;
+  try { await withCooldown(() => fn(btn)); }
+  finally { btn.disabled = false; applyLocks(lastD); }
+}
+
+async function mcuAction(btn, verb){
+  if (verb === 'reset' && !confirm('Factory reset will CLEAR all saved settings in NVM. Continue?')) return;
+  if (verb === 'save'  && !confirm('Save current settings to flash? (consumes 1 flash cycle)')) return;
+  await withCooldown(async () => {
+    btn.classList.add('busy');
+    await postCmd(verb);
+    btn.classList.remove('busy');
+  });
+  /* Initial reloads the saved record and Factory Reset replaces it, so every
+   * tab is now showing values nobody sent. The Settings tab is in this too:
+   * it is built from the algorithm parameters both verbs move, and leaving it
+   * out would have left the most-used tab the only stale one on the page. */
+  /* radarinit, not init. The button, both command layers and the firmware have
+     always called it radarinit; this test named something that exists nowhere,
+     so Initial has never read back while Factory Reset always has. */
+  if (verb === 'radarinit' || verb === 'reset') {
+    antSent = null;
+    await reportRead(verb === 'reset' ? 'Factory Reset' : 'Initial', await readAll(true));
+  }
+}
+
+async function readFw(btn){
+  dispMode = 'fw';   /* hand the display back to version readout */
+  await withCooldown(async () => {
+    btn.classList.add('busy');
+    await postCmd('fwver');
+    setTimeout(()=>{ btn.classList.remove('busy'); }, 200);
+  });
+  /* The version, and nothing else. Reading the whole page back here would
+     make the one button anyone presses first the slowest on the panel and
+     replace what is on screen before the operator asked. The tabs have READ, and Initial and Factory
+     Reset read back because they are the two actions that move the module out
+     from under the page. Pressing this one asks a question; it should not
+     rewrite the answer sheet. */
+}
+
+/* ---- Firmware version ------------------------------------------------------
+ * Two firmware generations are in use, and the page tells only those apart:
+ * 2.7.6, and 2.11.0 or later. Everything 2.7.6 has is open from the moment the
+ * page loads. What only 2.11 has - the Advanced rows marked with a lock, the
+ * DSP gain, the 0xF3 output modes and the stationary hold - stays locked until
+ * Check FW reports 2.11 or later, since an unknown version cannot clear the bar.
+ * fwCode(): 0 = never read, -1 = read failed, else MMmmpp. */
+const FW_211 = 21100;/* 2.11.0 — the release after 2.7.6 */
+const FW_2115 = 30405;/* 3.4.5 — HW Antenna, antUnlocked() */
+function fwCode(d){
+  if (!d) return 0;
+  const maj = d.fw_major|0;
+  if (maj === 0xFF) return -1;            /* backend sentinel for a failed read */
+  return maj*10000 + (d.fw_minor|0)*100 + (d.fw_patch|0);
+}
+/* Check FW has been pressed at least once. The backend distinguishes the two
+ * cases for us: 0 = never asked, -1 (0xFF sentinel) = asked and the module did
+ * not answer. Pressing it is what unlocks the main actions — they do not depend
+ * on the version, only on the operator having made contact deliberately. */
+const fwTried = (d)=> fwCode(d) !== 0;
+const fwKnown = (d)=> fwCode(d) > 0;
+/* Never true before the version is read (fwCode is 0 or -1 then), so one test
+ * covers both "too old" and "not known yet". */
+const fwAtLeast = (d,code)=> fwCode(d) >= code;
+/* The form the frames are actually arriving in: saw_adv, the backend saw a
+ * moving state above 1, which cannot happen in the simple form. The dashboard
+ * no longer switches the form (SDK 2.17.6 withdrew PID 0x6B); this is what
+ * keeps a module left in the advanced form, or on firmware older than 2.7.6,
+ * drawn right: nothing has to be read or written to find out, the first
+ * target that appears settles it.
+ *
+ * Firmware Check FW has read as older than 2.7.6 (2.7.6 itself not) reports
+ * only that form, so a moving target is Valid at 3 from the start rather than
+ * from its first state above 1. */
+const FW_276 = 20706;
+const fwPre276 = ()=> fwKnown(lastD) && fwCode(lastD) < FW_276;
+const advForm = (d)=> !!(d && d.saw_adv) || fwPre276();
+
+function showFw(d){
+  /* Display owned by applyAll() while in 'scene' mode — skip here. */
+  if (dispMode !== 'fw') return;
+
+  const code = fwCode(d);
+  const disp = $('fwDisplay');
+
+  if (code < 0) {
+    disp.textContent = 'READ FAIL';
+    disp.className = 'bad';
+  } else if (code === 0) {
+    /* Never read. The bar hint and the pulsing button say what to do about
+     * it; this only has to report that nothing is known yet. */
+    disp.textContent = 'v?.?.?';
+    disp.className = '';
+  } else {
+    disp.textContent = 'v' + (d.fw_major|0) + '.' + (d.fw_minor|0) + '.' + (d.fw_patch|0);
+    disp.className = code >= FW_211 ? 'match' : 'partial';
+  }
+}
+
+/* One gate, FW_211, and it only covers what 2.7.6 does not have (lockEq(),
+ * lockOldFw()). Everything else - ENTER, Initial, Factory Reset, Save Setting,
+ * Clear State, Nearest - works on both and is live from the moment the page
+ * loads. Check FW is a capability probe and nothing more. */
+function applyLocks(d){
+  /* While the 1-second cooldown owns the buttons, leave them alone — /state
+   * lands every second and would otherwise re-enable them mid-action. Only the
+   * state path reaches here; pushed frames deliberately do not. */
+  if (cooldownRunning) return;
+
+  /* Say it, do not just leave it unsaid. withCooldown() disables all of these
+   * for its one-second floor and calls us to restore them, so an unlocked
+   * control has to be unlocked here explicitly - otherwise the first press of
+   * any action button retires the lot. */
+  document.querySelectorAll('.actBtn').forEach(b=>{ b.disabled = false; });
+  /* ENTER is not ours to enable: a row still sitting at "-" must keep it grey,
+   * and this runs once a second. lockEnter() is the single owner and says why
+   * in the button's title. */
+  lockEnter();
+
+  lockEq(d);
+
+  lockOldFw(d);
+
+  /* Point at Check FW while it is still worth pressing - nothing is blocked
+   * by it any more, so this is a note, not a warning. It stops pulsing after
+   * one press whether the read succeeded or not: a module that never answers
+   * should not nag forever. */
+  const askFw = !fwTried(d);
+  $('fwBtn').classList.toggle('attn', askFw);
+
+  /* The note itself outlives the press, because pressing is not always the
+   * answer: on 2.7.6 the locked items stay locked for good, and going quiet at
+   * that point reads as a fault.
+   * Silence in two cases only: nothing is locked, or the read came back empty
+   * and the red READ FAIL beside this already says so. */
+  const code = fwCode(d);
+  let hint = '';
+  if (code === 0)
+    hint = 'Check FW to unlock the FW 2.11 items';
+  else if (code > 0 && !fwAtLeast(d, FW_211))
+    hint = 'Locked items need FW 2.11';
+  $('fwHint').textContent = hint;
+  $('fwHint').classList.toggle('off', !hint);
+}
+
+/* ===== General Settings: the 17 items ======================================
+ * ENTER writes them and reads them back; READ reads them. One entry per item,
+ * keyed by the verb that writes it, and every value in that verb's units - the
+ * units /get answers in (KW307WiFi.cpp, one SDK getter per item) - so what was
+ * sent and what came back compare without any converting:
+ *
+ *   fov / shrink    tenths of a degree      hold / release   seconds
+ *   RangeGate IIR   0~1000 (150 = 0.15)     checkboxes       0 / 1
+ *
+ * w is the factor from a control's own units to those: the box shows 0.15 and
+ * the verb carries 150. The order is the order ENTER writes in, and two places
+ * in it carry weight: scene first, because a preset rewrites the controls below
+ * it; gain before stationary, because the stationary setter reads the gain this
+ * press wrote; power mode last, because after Power Down the module takes
+ * nothing reliably but a return to Normal (kw307_set_power_mode()), so every
+ * other item has to be in before it.
+ *
+ * Application, Motion and Stationary are composites - one choice
+ * standing for several values on the module. When the module matches none of the choices,
+ * because someone tuned it field by field, they show Custom; ENTER then leaves
+ * them alone and the module keeps its tuning. */
+const GEN = [
+  {k:'scene',      lb:'Application',             ids:['i_scene']},
+  {k:'range',      lb:'Detection range',         ids:['i_rmin', 'i_rmax']},
+  {k:'fov',        lb:'Field of view',           ids:['i_fov', 'i_shr'], w:[1, 10]},
+  {k:'gain',       lb:'Gain',                    ids:['i_gain']},
+  {k:'motion',     lb:'Motion sensitivity',      ids:['i_mot']},
+  {k:'stationary', lb:'Stationary sensitivity',  ids:['i_sta']},
+  {k:'signal',     lb:'Signal thresholds',       ids:['i_nf', 'i_ns']},
+  {k:'clutter',    lb:'Adv clutter rejection',   ids:['i_clen', 'i_clspd', 'i_cldev']},
+  {k:'rgiir',      lb:'RangeGate IIR',           ids:['i_kdn', 'i_kds'], w:[1000, 1000]},
+  {k:'movtrk',     lb:'Moving trackers',         ids:['i_mvmax', 'i_mvshow']},
+  {k:'statrk',     lb:'Stationary trackers',     ids:['i_stmax', 'i_stshow']},
+  {k:'hold',       lb:'Presence hold time',      ids:['i_hold']},
+  {k:'forcesta',   lb:'Presence hold zone',      ids:['i_fsen', 'i_fsdist', 'i_fsfov']},
+  {k:'maxsta',     lb:'Stationary release time', ids:['i_msten', 'i_mstsec']},
+  {k:'rssi',       lb:'Report noise floor',      ids:['i_rssi']},
+  {k:'gpioflag',   lb:'GPIO presence flag',      ids:['i_gpio']},
+  {k:'powermode',  lb:'Power Mode',              ids:['i_pmode']},
+];
+
+/* Update Rate below 20 Hz - 1 Hz, 0.5 Hz or a Custom cycle. The module then
+ * sleeps through most of each cycle with the radar chip's RF and crystal off,
+ * and every wake puts its own RF settings back, so Power Mode and the antenna
+ * (Mag type goes with it) can be neither written nor read: a read finds the
+ * sleep, PA Off is undone at the next wake, and the antenna's TX bits read 0.
+ * ENTER and READ leave them out without a word, and the board's /get does not
+ * ask; back at 20 Hz they go through again. urateSlow is the rate as last written
+ * or read - false until then, the module's own default. */
+let urateSlow = false;
+const SLOW_SKIP = ['antenna', 'magtype', 'powermode'];
+const slowSkip = (it)=> urateSlow && SLOW_SKIP.includes(it.k);
+/* And the other way round: in Power Down the Update Rate is not sent. The
+ * firmware runs KW_Cycle_PS_Off() on every CMD 0x05, which powers the RF
+ * blocks back up while the radar loop stays stopped - still Down, without the
+ * saving. Normal first, then the rate. pwrDown is the mode as General last
+ * read it, cleared by the first frame after. */
+const downSkip = (it)=> pwrDown && it.k === 'urate';
+/* Engineering mode only (?Eng=1): Update Rate. Outside it the row is hidden
+ * and ENTER and READ leave it out; READ still notes the rate (noteUrate), so
+ * what waits for 20 Hz keeps waiting. */
+const ENG_ONLY = ['urate'];
+const engSkip = (it)=> !ENG && ENG_ONLY.includes(it.k);
+/* The rate the module was last read or set to - the page's index, null for
+ * Custom, undefined when not known (a new connection). */
+let urateIx;
+function noteUrate(S){
+  if (!S || !('urate' in S)) return;
+  urateIx = S.urate;
+  urateSlow = (S.urate !== 0);
+  rate.slow(urateSlow);
+}
+
+/* After ENTER sends the Update Rate, the two settings it moved on other tabs
+ * (SDK 2.17.6, User Guide 4.11), both set by the board after the rate: the
+ * moving threshold - (2, 250, 500, 500) in a cycle, the defaults
+ * (8, 250, 500, 2000) back at 20 Hz - and the moving display_th, 1 or 8.
+ * Both are read from the module and put on Tracker and General Settings, with
+ * Motion sensitivity, which follows the threshold (Custom in a cycle). Nothing
+ * else on those tabs is touched; Application is fitted again, so a panel that
+ * no longer matches its scene says Custom.
+ *
+ * moved: a CMD 0x05 went out. The firmware then turns the PA back on
+ * (KW_Cycle_PS_Off()), so General's PA Off is put to Normal - by that rule,
+ * not by a read, which could land on the mode mid-change. Power Down survives
+ * it (the radar loop stays stopped) and is left. */
+async function urateFollow(resId, moved){
+  const lines = [];
+  const take = (items, S, keys)=> items.filter(it => keys.includes(it.k)).forEach(it => {
+    if (!S || S[it.k] === undefined) return;
+    const was = genNow(it), now = genArr(S[it.k]);
+    if (genSame(was, now)) return;
+    const wl = genLabel(it, was);
+    genPut(it, now);
+    lines.push(genCustom(it) ? it.lb + ' \u2192 Custom'
+                             : it.lb + ': ' + wl + ' \u2192 ' + genLabel(it, genNow(it)));
+  });
+  take(GEN, await genFetch(resId), ['motion', 'movtrk']);
+  const pm = GEN.find(it => it.k === 'powermode');
+  if (moved && pm && (genNow(pm) || [])[0] === 2) {
+    const wl = genLabel(pm, genNow(pm));
+    genPut(pm, [1]);
+    lines.push(pm.lb + ': ' + wl + ' → ' + genLabel(pm, genNow(pm)));
+  }
+  take(TRK_GEN, await genFetch(resId, 'trk'), ['mthr']);
+  sceneRefit(lines);
+  lockEnter();
+  if (typeof mirrorSettings === 'function') mirrorSettings();
+  if (!lines.length) return;
+  frameLog.add('note', 'Update Rate \u00b7 General and Tracker follow');
+  lines.forEach(l => frameLog.add('note', '  ' + l));
+}
+
+/* The antenna (tx_mode / rx_mode / with_angle) as an ENTER last sent it, on
+ * General's HW Antenna or Advanced's Antenna - one setting on the module, so
+ * one record. ENTER writes it again only when the panel holds something else;
+ * Mag type goes out as before. Forgotten, so the next ENTER writes, on a new
+ * connection, on Initial / Factory Reset, when the write failed or went
+ * unanswered (postCmd() false), and when a READ finds the module holding
+ * something other than what was sent. */
+let antSent = null;
+const antSame = (a)=> !!antSent && !!a && genSame(antSent, a.slice(0, 3));
+function noteAnt(S){
+  if (antSent && S && S.antenna !== undefined && !genSame(antSent, genArr(S.antenna)))
+    antSent = null;
+}
+
+/* ?Eng=1: a → beside each single-function item, which sends that item's verb
+ * alone, with the values its controls hold - as ENTER would write it - and
+ * reads nothing back. For trying one function at a time. Composites, one
+ * choice standing for several calls (Application, Motion, Stationary), get
+ * none. A FW 2.11 item still waits for Check FW: on 2.7.6 CMD 0x33 is the
+ * sweep command. */
+const ENG_SEND_SKIP = ['scene', 'motion', 'stationary'];
+function engSendAdd(items, resId){
+  if (!ENG) return;
+  items.forEach(it => {
+    if (ENG_SEND_SKIP.includes(it.k)) return;
+    const e = $(it.ids[0]); if (!e) return;
+    const row = e.closest('.g'), ck = e.closest('label.ck');
+    /* A box row holds two items: each button goes beside its own box. A
+       button inside a label does not tick the box. */
+    const host = (row && row.classList.contains('bitrow') && ck) ? ck : row;
+    if (!host || host.querySelector('.engSend[data-k="' + it.k + '"]')) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'engSend'; b.dataset.k = it.k;
+    b.textContent = '→';
+    b.title = 'Send ' + it.lb + ' alone: written, not read back.';
+    b.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); engSend(it, resId, b); });
+    host.appendChild(b);
+  });
+}
+async function engSend(it, resId, btn){
+  const say = (h)=> { const r = $(resId); if (r) r.innerHTML = h; };
+  if (it.gate && !gateOk(it, lastD)) {
+    say('<span class="err">' + it.lb + ': needs ' + gateFw(it) + ' - press Check FW. Nothing sent.</span>');
+    return;
+  }
+  const a = genNow(it);
+  if (a === null) { say('<span class="err">' + it.lb + ': not a value - nothing sent.</span>'); return; }
+  const why = typedWhy(it);
+  if (why) { say('<span class="err">' + it.lb + ': ' + why + ' - nothing sent.</span>'); return; }
+  const verb = (it.send || it.k) + ':' + a.join(':');
+  let took = null;
+  await withCooldown(async () => {
+    btn.classList.add('busy');
+    took = await postCmd(verb);
+    btn.classList.remove('busy');
+  });
+  if (took === null) return;             /* inside another action's second */
+  /* What later ENTERs go by: the antenna is written again, the rate is noted. */
+  if (it.k === 'antenna') antSent = null;
+  if (it.k === 'urate' && took !== false) { urateIx = a[0]; urateSlow = a[0] > 0; rate.slow(urateSlow); }
+  say(took === false ? '<span class="err">→ ' + verb + ' - refused or no answer</span>'
+                     : '→ ' + verb + ' - sent');
+  frameLog.add('note', '→ ' + verb + (took === false ? ' (refused or no answer)' : ''));
+}
+engSendAdd(GEN, 'setRes');
+
+/* Tooltips only where the page shows nothing else to go by: the three icon
+ * buttons, and Power Mode, the Counter pairs and Factory Reset, whose effects
+ * are not on screen. Every other title is dropped - the ones set later too, so
+ * a tooltip stays off anywhere it is not listed here. */
+const TIP_KEEP = '#themeBtn, #flipHBtn, #flipVBtn, #i_pmode, '
+               + '#i_mvmax, #i_mvshow, #i_stmax, #i_stshow, .actBtn.danger';
+function tipOff(el){
+  if (el.hasAttribute('title') && !el.matches(TIP_KEEP)) el.removeAttribute('title');
+}
+document.querySelectorAll('[title]').forEach(tipOff);
+new MutationObserver(ms => ms.forEach(m => {
+  if (m.type === 'attributes') { tipOff(m.target); return; }
+  m.addedNodes.forEach(n => {
+    if (n.nodeType !== 1) return;
+    tipOff(n);
+    n.querySelectorAll('[title]').forEach(tipOff);
+  });
+})).observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['title']});
+
+/* Whether a value is one this control could have been set to - the page's own
+ * range is the rule. A number box answers by its min, max and step (no step
+ * means whole numbers, as in the browser); a select by its options, which is
+ * wr()'s business; a checkbox by being a checkbox. */
+function inRange(e, val){
+  if (!e || e.tagName === 'SELECT' || e.type === 'checkbox') return true;
+  const f = +val;
+  if (!Number.isFinite(f)) return false;
+  if (e.min !== undefined && e.min !== '' && f < +e.min) return false;
+  if (e.max !== undefined && e.max !== '' && f > +e.max) return false;
+  const st = (e.step === undefined || e.step === '') ? 1 : (e.step === 'any' ? 0 : +e.step);
+  if (st > 0) {
+    const q = (f - (+e.min || 0)) / st;
+    if (Math.abs(q - Math.round(q)) > 1e-6) return false;
+  }
+  return true;
+}
+
+/* Custom on one control: the module holds something this page cannot set. A
+ * composite's select on its no-choice placeholder, a select on the
+ * "Custom (value)" option a read gave it, or a number box holding a value
+ * outside its own range. */
+function isCustom(id){
+  const e = $(id);
+  if (e.tagName === 'SELECT') {
+    if (e.value === UNKNOWN) return true;
+    const o = e.querySelector('option[data-custom]');
+    return !!o && String(o.value) === String(e.value);
+  }
+  /* A box: Custom only while it holds what READ put there. Typed out of its
+     range, it is held with a reason instead - typedWhy(). */
+  return !inRange(e, e.value) && e._held === e.value;
+}
+/* An item ENTER leaves alone: any of its controls on Custom. Writing it would
+ * put a value the module did not hold in place of one it did. */
+const genCustom = (it)=> it.ids.some(isCustom);
+
+/* What an item's controls hold, in its verb's units. null for a composite on
+ * its placeholder or a box that is not a number. Scaled values are rounded -
+ * the verb carries integers - and unscaled ones are kept as they are, so a
+ * Custom hold of 11.5 s compares as 11.5 and a read settles on it. */
+/* A typed number box against its own min and max, and a whole number unless
+ * its step is a fraction. The board and the SDK check some of these and drop
+ * the write without a word, and the moving speeds not at all, so the page
+ * holds the item and says why. '' when every box of the item fits. */
+function typedWhy(it){
+  for (const id of it.ids) {
+    const e = $(id);
+    if (!e || e.tagName !== 'INPUT' || e.type !== 'number') continue;
+    const lo = (e.min === '') ? -Infinity : +e.min, hi = (e.max === '') ? Infinity : +e.max;
+    const whole = !(+e.step > 0 && +e.step < 1);
+    const f = parseFloat(e.value);
+    if (!Number.isFinite(f) || f < lo || f > hi || (whole && !Number.isInteger(f)))
+      return 'must be ' + (whole ? 'a whole number ' : '') + 'from ' + lo + ' to ' + hi
+           + ', not ' + (e.value === '' ? 'empty' : e.value);
+  }
+  return '';
+}
+
+function genNow(it){
+  const out = [];
+  for (let i = 0; i < it.ids.length; i++){
+    const e = $(it.ids[i]);
+    if (e.type === 'checkbox') { out.push(e.checked ? 1 : 0); continue; }
+    if (e.tagName === 'SELECT' && e.value === UNKNOWN) return null;
+    const f = parseFloat(e.value);
+    if (!Number.isFinite(f)) return null;
+    const w = (it.w && it.w[i]) || 1;
+    out.push(w === 1 ? f : Math.round(f * w));
+  }
+  return out;
+}
+
+/* /get answers a scalar for a one-control item and null for a composite the
+ * module matches no level of; both become the array shape genNow() gives. */
+const genArr  = (x)=> (x === null) ? null : (Array.isArray(x) ? x : [x]);
+const genSame = (a, b)=> (a === null || b === null) ? a === b
+                       : a.length === b.length && a.every((x, i) => +x === +b[i]);
+
+/* A label, marked Custom when the value is one the control could not have been
+ * set to. A select's Custom option already says so in its own text. */
+const rangeLabel = (id, val, s)=>
+  (/^Custom/.test(s) || inRange($(id), val)) ? s : 'Custom (' + s + ')';
+
+/* What a value MEANS on the item's controls - option text, on / off - joined
+ * across its controls, for the log and the verify lines. */
+function genLabel(it, arr){
+  if (arr === null) return 'Custom';
+  return arr.map((x, i) => {
+    const id = it.ids[i], val = x / ((it.w && it.w[i]) || 1);
+    return rangeLabel(id, val, labelOf(id, val));
+  }).join(' / ');
+}
+
+/* A select handed a value it has no option for gets one, "Custom (15)", rather
+ * than refusing it: the module holds 15, and leaving the box on what it showed
+ * before would put a number on screen the module is not running. One per
+ * select, reused. */
+function setCustomValue(id, val){
+  const e = $(id);
+  let o = e.querySelector('option[data-custom]');
+  if (!o) {
+    o = document.createElement('option');
+    o.setAttribute('data-custom', '1');
+    e.appendChild(o);
+  }
+  o.value = String(val);
+  o.textContent = 'Custom (' + fmtNum(val) + ')';
+  e.value = String(val);
+}
+
+/* A number box holding a value outside its own range keeps it - it is what the
+ * module holds - and says so: an amber outline and a tooltip, both gone the
+ * moment someone types a value the box can set. */
+function markRange(e){
+  if (!e || e.tagName === 'SELECT' || e.type === 'checkbox' || !e.classList) return;
+  const out = !inRange(e, e.value);
+  if (e._tip === undefined) e._tip = e.title || '';
+  e.classList.toggle('customVal', out);
+  e.title = out ? 'Custom: the module holds ' + e.value + ', which this box does not set'
+                : e._tip;
+  if (!e._rangeHook && e.addEventListener) {
+    e._rangeHook = true;
+    e.addEventListener('input', ()=> markRange(e));
+  }
+}
+
+/* wr(), and for a value the control cannot set: Custom (value) on a select, the
+ * marked value on a number box. */
+const wrOrCustom = (id, v)=> {
+  const e = $(id);
+  if (!wr(id, v)) { if (e.tagName !== 'SELECT') return false; setCustomValue(id, v); }
+  markRange(e);
+  /* What the module held, so a box out of range on it reads as Custom and one
+     typed out of range does not - see isCustom(). */
+  if (e.tagName !== 'SELECT') e._held = e.value;
+  return true;
+};
+
+/* Put what the module holds on an item's controls. null puts a composite on
+ * Custom. */
+function genPut(it, arr){
+  if (arr === null) { it.ids.forEach(id => { if ($(id).tagName === 'SELECT') setUnknown(id); }); return; }
+  arr.forEach((x, i) => wrOrCustom(it.ids[i], x / ((it.w && it.w[i]) || 1)));
+}
+
+/* /get, with a deadline: fetch() has none of its own. t picks the tab - none
+ * for General Settings, adv, trk, or hold for the stationary hold. */
+async function genFetch(hostId, t){
+  $(hostId).textContent = 'reading back…';
+  pausePollers();
+  const ac  = new AbortController();
+  const cut = setTimeout(()=>ac.abort(), RB_MS);
+  try{
+    const r = await fetch(base() + '/get' + (t ? '?t=' + t : ''), {cache:'no-store', signal:ac.signal});
+    if(!r.ok) throw 0;
+    return await r.json();
+  }catch(e){
+    $(hostId).innerHTML = '<span class="err">&#10007; ' + (ac.signal.aborted
+            ? 'Read timed out after ' + (RB_MS / 1000) + ' s - board did not answer'
+            : 'Read failed: no reply from board') + '</span>';
+    return null;
+  }finally{
+    clearTimeout(cut);
+    resumePollers();
+  }
+}
+
+/* ===== Settings is the master =========================================
+ * Seven Settings controls fan out into commands and parameters that the CMD and
+ * Algorithm tabs also show, so moving one here moves a control there. Until now
+ * the other tab went on showing its old value, and the page disagreed with
+ * itself about what the module had been told.
+ *
+ * Settings wins, and the correspondence is visible: changing a Settings control
+ * moves the controls it owns on the other two tabs straight away, and ENTER
+ * moves all of them again. Between those two moments the other tabs are free -
+ * editing a parameter there is deliberate fine-tuning and nothing here touches
+ * it until the next Settings change or the next ENTER.
+ *
+ * Where each value lands is read out of the two tables rather than written down,
+ * so a row added to or removed from either tab joins or leaves the mirror with
+ * nothing here to update. test_settings_mirror.js checks the set of overlaps
+ * against the SDK, so a Settings control that starts writing something a tab
+ * shows cannot go unmirrored unnoticed. */
+const MIRROR_PID = {};   /* pid -> {id, e} on the Algorithm tab */
+PID_TABLE.forEach(s => s.i.forEach(it => { MIRROR_PID[it.p] = {id:'p_' + it.k, e:it.e}; }));
+const MIRROR_CMD = {};   /* cmd -> control id per payload byte, on the CMD tab */
+CMD_TABLE.forEach(c => { MIRROR_CMD[c.c] = c.f.map(f => ({id:'x_' + c.c + '_' + f.k, f})); });
+
+/* What the Settings panel would write right now, in wire units.
+ *
+ * Derived from MOT_LEVELS / STA_LEVELS - the same two tables readSettings() uses
+ * to name the level a module is sitting on - so the forward and reverse
+ * directions cannot disagree about what a level means.
+ *
+ * CMD payloads are sparse on purpose. CMD 0x17 carries both doppler bands and
+ * each preset owns half of it: motion writes bytes 0 and 1, stationary 3 to 5,
+ * and byte 2 (Fast LPF) belongs to neither. The SDK keeps its own cached copy of
+ * that byte and re-sends it untouched, and this page has no way to know what is
+ * in that cache - so it is left alone rather than guessed at. */
+function settingsWire(){
+  const pids = {}, cmds = {};
+  const num = (id)=> parseInt(v(id), 10) || 0;
+
+  /* A level showing "-" names no row, so it says nothing about these fields:
+   * READ put it there because the module matches no level, which is exactly
+   * when the fields on the other tabs are the only true account. Reading it
+   * as 0 would overwrite them with level 0's. ENTER is locked in that state,
+   * so nothing is being sent that this leaves out. */
+  const motKnown = v('i_mot') !== UNKNOWN;
+  const staKnown = v('i_sta') !== UNKNOWN;
+  const lvl = num('i_mot'), byp = (lvl < 0);
+  const m   = MOT_LEVELS[lvl] || MOT_LEVELS[0];
+  const s   = STA_LEVELS[num('i_sta')] || STA_LEVELS[0];
+  cmds[0x17] = {};
+  if (motKnown) { cmds[0x17][0] = byp ? 7 : m.k; cmds[0x17][1] = byp ? 3 : 0; }
+  if (staKnown) { cmds[0x17][3] = s.k; cmds[0x17][4] = s.n; cmds[0x17][5] = s.l;
+    /* The stationary level's other write: CMD 0x32 byte[2], Baseband attenuator. Bytes
+       0 and 1 are the CMD tab's own and are not mirrored over. */
+    cmds[0x32] = { 2: s.a }; }
+
+  /* Level -1 replaces a numbered one rather than sitting beside it: threshold 1,
+   * pass_initial 4, and the speed-sum gate off. */
+  const spd = byp ? 1 : m.s, pts = byp ? 4 : m.p;
+  if (motKnown) {
+    pids[0x26] = spd;
+    pids[0x1A] = Math.min(32767, spd * 2);
+    pids[0x31] = pts;
+    pids[0x28] = byp ? 0 : Math.min(32767, spd * pts);
+  }
+
+  /* The four tracker counters were mirrored here until their rows left the
+   * Tracker Optimization tab, the same way flag hold time and the clutter parameters
+   * went before them. Settings still writes all four - the GEN table has them and
+   * ENTER sends them - there is simply nothing on another tab left showing
+   * them, and a mirror with no target is a promise to nobody.
+   * RangeGate IIR was mirrored here too, until its row left that tab as well.
+   * Settings still writes 0x4A / 0x4B - the GEN table has them and ENTER sends
+   * them - there is simply nothing left on another tab to mirror them onto. */
+  /* 0x33 is the exception among the counters: its row did not leave. It is the
+   * end-point recorder's "Max count", hidden from the customer but present, and
+   * the stationary counter limit owns it along with 0x29 - so a tab still
+   * showing the old number would be showing something the module no longer
+   * holds. Hidden is not absent: the control is there to be written. */
+  pids[0x33] = Math.min(255, num('i_stmax'));
+
+  /* Presence hold time and the three clutter parameters were mirrored here
+   * their rows left the Algorithm tab. Settings still writes all four; there is
+   * simply nothing on another tab left showing them. */
+
+  /* CMD 0x10 is not mirrored any more: the Advanced Settings tab has no
+     control for it since Power Mode moved here, so there is nothing to
+     mirror onto. Settings owns the mode outright. */
+  return { pids, cmds };
+}
+
+/* Put a wire value on the Algorithm tab's control for that PID. The tab holds
+ * display units, so it goes through the same encoding the tab's own read-back
+ * uses. Silent when the tab has not been built yet - showTab() mirrors again
+ * the moment it is. */
+function mirrorPid(pid, raw){
+  const t = MIRROR_PID[pid]; if (!t || !$(t.id)) return;
+  const enc = ENC[t.e];      if (!enc) return;
+  const n = (enc.len === 2) ? (raw & 0xFFFF) : raw;
+  wr(t.id, fmtNum(enc.from(unfold(enc, n))));
+}
+
+function mirrorCmdByte(cmd, ix, val){
+  const t = MIRROR_CMD[cmd]; if (!t || !t[ix]) return;
+  /* A bit-pair has no control of its own - the id names a pair of checkboxes -
+   * so the presence test is on the first of them. */
+  if (t[ix].f.t === 'b') {
+    if ($(bitId(t[ix].id, t[ix].f.bits[0]))) bitsWr(t[ix].id, t[ix].f, val);
+    return;
+  }
+  if (!$(t[ix].id)) return;
+  wr(t[ix].id, val);
+}
+
+/* Settings -> the other two tabs. */
+function mirrorSettings(){
+  const w = settingsWire();
+  Object.keys(w.pids).forEach(p => mirrorPid(+p, w.pids[p]));
+  Object.keys(w.cmds).forEach(c =>
+    Object.keys(w.cmds[c]).forEach(ix => mirrorCmdByte(+c, +ix, w.cmds[c][ix])));
+  /* The cutoff labels, the payload lines and the preset selectors are derived,
+   * so they have to be recomputed or they go on describing the previous level. */
+  cmdEchoAll();
+}
+
+/* The module -> the other two tabs, from what ENTER's verify pass read back.
+ *
+ * Only what actually answered: a parameter the module did not report leaves its
+ * control exactly as the mirror set it, because a missing answer says nothing
+ * about the value and blanking it would claim otherwise. */
+function mirrorFromRead(d){
+  if (!d) return;
+  Object.keys(MIRROR_PID).forEach(p => {
+    const raw = d.p ? d.p[hex2(+p)] : undefined;
+    if (raw !== undefined) mirrorPid(+p, raw);
+  });
+  Object.keys(MIRROR_CMD).forEach(c => {
+    const got = d.c ? d.c[hex2(+c)] : undefined;
+    if (!got) return;
+    got.forEach((val, ix) => { if (val !== undefined) mirrorCmdByte(+c, ix, val); });
+  });
+  cmdEchoAll();
+}
+
+/* ENTER's second half, not a button of its own: read the 17 items back through
+ * /get and hold each against what this press sent. A write that returned OK
+ * only says the bytes left the board.
+ *
+ * Application has nothing on the module to read - it is a name for a set of
+ * values - so it stands when the values it names are the ones the module now
+ * holds, and goes to Custom when they are not: the preset was edited after it
+ * was picked, and the name no longer describes the module. That is a note, not
+ * a failure; nothing was refused. */
+async function verifyGeneral(sent, kept){
+  const S = await genFetch('setRes');
+  if (!S) return;
+  notePower(S);
+  noteUrate(S);
+  noteAnt(S);
+  const rows = [], notes = [];
+  for (const it of GEN){
+    if (it.k === 'scene' || !(it.k in sent)) continue;
+    const w = genLabel(it, sent[it.k]);
+    if (S[it.k] === undefined) { rows.push({n:it.lb, w, g:'', s:'nr'}); continue; }
+    const g = genArr(S[it.k]);
+    rows.push({n:it.lb, w, g:genLabel(it, g), s: genSame(sent[it.k], g) ? 'ok' : 'diff'});
+  }
+  if ('scene' in sent) {
+    const lv = (x)=> (x === null || x === undefined) ? null : +x;
+    const fit = sceneFit(lv(S.motion), lv(S.stationary));
+    if (fit === sent.scene[0]) rows.unshift({n:'Application', w:'', g:'', s:'ok'});
+    else {
+      setUnknown('i_scene');
+      rows.unshift({n:'Application', w:'', g:'', s:'ok'});
+      notes.push('Application → Custom - the panel no longer matches the preset');
+      frameLog.add('note', 'ENTER General · Application → Custom');
+    }
+  }
+  renderGen(rows, kept, notes);
+  if (typeof mirrorSettings === 'function') mirrorSettings();
+}
+
+function renderGen(rows, kept, notes){
+  /* General Settings is the customer's page, so its report names items, not
+   * figures: what did not take, and what was left as the module had it. The
+   * set / read pairs are the Advanced and Tracker tabs' business. */
+  const bad = rows.filter(r => r.s !== 'ok');
+  const nr  = bad.filter(r => r.s === 'nr'), df = bad.filter(r => r.s !== 'nr');
+  const out = [];
+  if (!bad.length) out.push('<span class="ok">&#10003; Written and verified</span>');
+  if (df.length) out.push('<span class="err">&#10007; Not verified: ' + df.map(r => r.n).join(', ') + '</span>');
+  if (nr.length) out.push('<span class="err">&#10007; No response: ' + nr.map(r => r.n).join(', ') + '</span>');
+  if (kept.length)
+    out.push('<span class="k">Custom (kept): ' + kept.map(it => it.lb).join(', ') + '</span>');
+  out.push(...notes.map(t => '<span class="chg">' + t + '</span>'));
+  $('setRes').innerHTML = out.join('<br>');
+}
+
+async function applyAll(){
+  /* What was refused, and why, reported after the read-back so its lines cannot
+   * paint over it. */
+  const held = [], kept = [], sent = {};
+  await withCooldown(async () => {
+    const btn = $('enter');
+    btn.classList.add('sending');
+    for (const it of GEN){
+      /* Not yet FW 2.11, or below 20 Hz: left out, without a word. */
+      if ((it.gate && !gateOk(it, lastD)) || slowSkip(it) || engSkip(it)) continue;
+      /* Custom: the module holds a tuning no choice names. Writing a level here
+         would replace it with one nobody picked, so it stays. */
+      if (genCustom(it)) { kept.push(it); continue; }
+      const a = genNow(it);
+      /* A typed box out of its own bounds holds its whole item: the setter
+         writes the item's values together, so none of them goes. */
+      const why = (a === null) ? 'must be a number' : typedWhy(it);
+      if (why) { held.push(it.lb + ' &mdash; ' + why); continue; }
+      await postCmd(it.k + ':' + a.join(':'));
+      sent[it.k] = a;
+    }
+
+    btn.classList.remove('sending');
+    btn.classList.remove('pending');
+    dirty = false;
+    fanPreviewBase = null;
+    /* What the plot draws solid until the module reports it. */
+    { const mn = parseInt(v('i_rmin'), 10), mx = parseInt(v('i_rmax'), 10);
+      if (!isNaN(mn) && !isNaN(mx)) rangeApplied = { min: mn, max: mx }; }
+    /* Follow the detection range just applied rather than the scene's own
+     * constant: the moment someone sets a short range, the constant would leave
+     * the plot at 10 m and the live area a sliver in the middle. */
+    setFan(fanForRange(parseInt(v('i_rmax')) || 0));
+    /* Hand the fwDisplay to the just-applied scene name. */
+    const disp = $('fwDisplay');
+    disp.textContent = isUnknown('i_scene') ? 'Custom'
+                     : (SCENE_NAMES[parseInt(v('i_scene')) || 0] || '-');
+    disp.className = 'scene';
+    dispMode = 'scene';
+  });
+
+  /* Outside withCooldown so the buttons finish settling before the reads stall
+   * the board's loop(). Guarded because genFetch() has already written 'reading
+   * back…' into the panel: a throw below it would leave that text sitting
+   * there. */
+  try { await verifyGeneral(sent, kept); }
+  catch (e) {
+    $('setRes').innerHTML = '<span class="err">read-back failed inside the page: '
+                          + e + '</span>';
+  }
+
+  if (held.length) {
+    $('setRes').innerHTML += held.map(h =>
+      '<br><span class="err">! not sent: ' + h + '</span>').join('');
+  }
+}
+
+/* The link's status line - Push, Polling, No response - and nothing else.
+ * Write and READ results go in their own tab's box and the Frame log: a push
+ * repaints this 20 times a second, so anything else put here lasts one frame.
+ * Skips the write when nothing changed: the push path calls this 20 times a
+ * second with the same string. */
+function setSt(m,c){
+  const e=$('st'), cl='st '+(c||'');
+  if (e.textContent===m && e.className===cl) return;
+  e.textContent=m; e.className=cl;
+}
+
+/* Live throughput readout. Two numbers, because they fail separately: Hz is how
+ * often this page repainted, and drop is how many of the module's own frames
+ * never got here. frame_index is monotonic, so a gap in it is proof of loss no
+ * matter how healthy the socket looks. 20 Hz with no drop figure is the target;
+ * 20 Hz with one means the board is pushing fine and the link is shedding. */
+const rate = {
+  t0:0, n:0, prev:-1, lost:0, span:0, grace:0, quiet:false,
+  tick(idx){
+    const now = performance.now();
+    if (!this.t0) this.t0 = now;
+    this.n++;
+    if (idx !== undefined && this.prev >= 0 && !this.quiet){
+      const gap = (idx - this.prev) & 0xFFFF;         /* the counter is u16 */
+      /* A gap past a few seconds is a reconnect or a module restart, not loss
+       * worth reporting — counting it would swamp the figure with one event. */
+      if (gap > 0 && gap < 400){
+        /* The first loss after connecting is the link coming up, not frames
+           lost on it: the module was already streaming before the page was
+           listening. Skipped once - only the first, only in the first second -
+           and every one after it is recorded. */
+        const skip = (gap > 1 && this.grace > 0);
+        if (skip) { this.grace = 0; this.span += 1; }
+        else      { this.lost += gap - 1; this.span += gap; }
+        /* The percentage above averages these away every second; the log keeps
+         * each one, with the counters either side. */
+        if (gap > 1 && !skip) frameLog.gap(this.prev, idx, gap - 1);
+      }
+      /* Excluded from the drop figure for good reason, but not nothing: a step
+       * this large is the counter restarting, not the link shedding. */
+      else if (gap >= 400) frameLog.jump(this.prev, idx);
+    }
+    if (idx !== undefined) { this.prev = idx; if (this.grace > 0) this.grace--; }
+    const dt = now - this.t0;
+    if (dt < 1000) return;
+    const hz  = this.n * 1000 / dt;
+    const pct = this.span ? Math.round(100 * this.lost / this.span) : 0;
+    $('rate').textContent = hz.toFixed(1) + ' Hz' + (pct ? ' · drop ' + pct + '%' : '');
+    this.t0 = now; this.n = 0; this.lost = 0; this.span = 0;
+  },
+  /* Below 20 Hz there is no loss to report.
+   *
+   * The module keeps counting its own 50 ms frames and sends every Nth, so at
+   * 1 Hz the counter arrives 20 higher each time and every single frame looks
+   * like nineteen dropped. That is the rate working, not the link shedding,
+   * and a log saying otherwise is worse than a log saying nothing.
+   *
+   * Off rather than filtered: the cycle length is whatever ps and skip add up
+   * to, so there is no gap size that means loss at one rate and the rate
+   * itself at another. 20 Hz turns it back on, and so does a reconnect - the
+   * page cannot know what a board it has just met is set to, and recording is
+   * the state worth defaulting to.
+   *
+   * prev goes with it either way: the frame either side of the switch belongs
+   * to the old rate, and comparing across the two would report the change
+   * itself as a burst of loss. */
+  slow(on){
+    on = !!on;
+    if (this.quiet === on) return;
+    this.quiet = on; this.prev = -1;
+    frameLog.note(on ? '\u2014 below 20Hz \u2014 frame loss not recorded'
+                     : '\u2014 frame loss recorded again');
+  },
+  /* A connection just opened: start the count afresh, with a 20-frame (1 s at
+   * 20 Hz) window in which the first loss is the link coming up. */
+  connected(){ this.prev = -1; this.grace = 20; },
+  clear(){ this.t0=0; this.n=0; this.prev=-1; this.lost=0; this.span=0;
+           this.quiet=false;
+           $('rate').textContent='–';
+           /* The log survives a transport restart on purpose - it is the record
+            * of what the link did, and a reconnect is part of that record. */
+           frameLog.note('\u2014 counters reset (transport restart)'); }
+};
+
+/* Every gap in the module's frame counter, kept rather than averaged away.
+ *
+ * rate.tick() already spots them - it has to, to produce the drop percentage -
+ * but that figure is a one-second average that resets, so by the time anyone
+ * looks up it is gone and it never said when or how bad. A link that sheds two
+ * frames every ten seconds and one that sheds forty in a burst read the same
+ * there and are not the same fault.
+ *
+ * A ring, not a wipe: the oldest line goes when the cap is reached, so a long
+ * session keeps its most recent history instead of losing all of it at once.
+ * Auto-scroll follows the bottom only while the reader is already there -
+ * scrolling up to read something is a decision, and yanking the view back down
+ * on the next frame would undo it twenty times a second. */
+const frameLog = {
+  MAX: 400,
+  gaps: 0, lost: 0, atBottom: true,
+  /* HH:MM:SS - to the second; the log is read by a person, not timed. */
+  _stamp(){ return new Date().toTimeString().slice(0,8); },
+  /* stamp=false for a line that is not an event: the build banner is true from
+   * the moment the page loads, and a time against it would read as something
+   * having happened then. */
+  add(cls, txt, stamp){
+    const host = $('fLog'); if (!host) return;
+    const near = host.scrollHeight - host.scrollTop - host.clientHeight < 24;
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = (stamp === false ? '' : this._stamp() + '  ') + txt;
+    host.appendChild(line);
+    while (host.childElementCount > this.MAX) host.removeChild(host.firstChild);
+    if (near) host.scrollTop = host.scrollHeight;
+  },
+  /* One gap. `from`/`to` are the counters either side of it, printed rather
+   * than summarised: the pair is what makes a report reproducible, and a
+   * count alone loses where in the stream it happened. */
+  gap(from, to, n){
+    this.gaps++; this.lost += n;
+    this.add('gap', 'fc ' + from + ' \u2192 ' + to + '   ' + n +
+                    ' lost' + (n === 1 ? '' : ''));
+    this.head();
+  },
+  /* Not loss - the counter went somewhere it cannot reach by dropping frames.
+   * A big backwards step lands near 1 because that is where the firmware's
+   * boot ping starts it, so this is the module having restarted, which also
+   * means every unsaved setting on it is gone. Worth its own colour: the page
+   * looks identical either way, and nothing else on it notices. */
+  jump(from, to){
+    this.add('jump', 'fc ' + from + ' \u2192 ' + to +
+                     '   counter reset');
+  },
+  note(txt){ this.add('note', txt); },
+  head(){
+    const h = $('fLogHdr'); if (!h) return;
+    h.textContent = this.gaps
+      ? 'Frame log  \u00b7  ' + this.gaps + ' gaps, ' + this.lost + ' frames lost'
+      : 'Frame log';
+    /* Put away, that heading is off screen, so the switch carries the count
+     * instead - a gap should not be something found only by opening the log
+     * again. Read off the button's own class rather than logOpen: this runs
+     * from gap(), and the flag is declared further down the file. */
+    const b = $('logBtn');
+    if (b) b.classList.toggle('gaps', this.gaps > 0 && !b.classList.contains('on'));
+  },
+  clear(){
+    const host = $('fLog'); if (host) host.innerHTML = '';
+    this.gaps = 0; this.lost = 0; this.head();
+  }
+};
+
+/* Which build this page is, written at the top of the log before anything has
+ * happened - so a page handed to someone answers "which version is this"
+ * without needing a module on the other end.
+ *
+ * It describes the page, not the module. What firmware is actually on the other
+ * end is what Check FW answers, and that is a different line. Kept in step with
+ * KW307_api.h by hand; the UART page inherits it through
+ * make_uart_dashboard.pl. BUILD_VER is this page's own release, and the header
+ * shows it beside the SDK so both come from these three constants.
+ *
+ * No timestamp: it was true before the log existed. */
+const BUILD_VER = 'B.6', BUILD_SDK = '2.17.6', BUILD_SDK_FW = '2.11.0';
+$('verTag').textContent = ' · Version ' + BUILD_VER + ' (SDK ' + BUILD_SDK + ')';
+frameLog.add('note', 'SDK v' + BUILD_SDK + '   built for MCU FW ≥ ' + BUILD_SDK_FW, false);
+
+/* ===== Transport ==========================================================
+ * Frames are PUSHED over a WebSocket, one per module frame (~20 Hz / 50 ms), so
+ * the page repaints when the radar has something new instead of when a timer
+ * happens to fire. Polling could not reach that: at 100 ms it sampled half the
+ * frames, the interval was really 100 ms PLUS the round trip, and every sample
+ * paid for a request plus ~700 bytes of JSON that was mostly settings nobody
+ * had touched. A push frame is 30 bytes and costs no request.
+ *
+ * Polling /data stays as the fallback for a board whose socket will not open.
+ *
+ * Both start together: polling paints immediately while the socket is still
+ * shaking hands, then stops itself the moment the socket is up. */
+const WS_PORT = 81;
+const WS_VER  = 1;    /* must match KW307WiFi::WS_FRAME_VER */
+const WS_LEN  = 30;   /* must match KW307WiFi::WS_FRAME_LEN */
+
+/* 30 bytes -> the same field names the JSON used, so showStatus() and draw()
+ * never learn which transport delivered them. The layout is documented at
+ * _wsPush() in KW307WiFi.cpp. A version byte this page does not know means drop
+ * the frame: reading new data at old offsets would put plausible wrong targets
+ * on the plot instead of showing an obvious failure. */
+function decodeFrame(buf){
+  if (!buf || buf.byteLength < WS_LEN) return null;
+  const b = new DataView(buf);
+  if (b.getUint8(0) !== WS_VER) return null;
+  const fl = b.getUint8(1);
+  const slot = (o)=>({ d:   b.getUint16(o,   true),
+                       a:   b.getInt16 (o+2, true),
+                       m:   b.getUint16(o+4, true),
+                       st:  b.getUint8 (o+6),
+                       cnt: b.getUint8 (o+7) });
+  return { fresh:    fl        & 1,
+           human:   (fl >> 1)  & 1,
+           saw_adv: (fl >> 2)  & 1,
+           age:         b.getUint16(2, true),
+           frame_index: b.getUint16(4, true),
+           moving:     [slot(6), slot(14)],
+           stationary:  slot(22),
+           /* Stated, not omitted. applyFrame() merges with Object.assign, so a
+              key this frame leaves out keeps whatever the last frame put
+              there - so switching from a 0xF3 mode back to Normal would leave
+              the gates frozen on their last values. This repacked frame
+              carries neither block; saying so is what clears them. */
+           rg: null, demo: null };
+}
+
+function connectWS(){
+  if (!polling || ws) return;
+  let s;
+  try { s = new WebSocket('ws://' + location.hostname + ':' + WS_PORT + '/'); }
+  catch(e){ setTimeout(connectWS, 2000); return; }
+  ws = s;
+  s.binaryType = 'arraybuffer';
+  /* Every handler checks it is still the current socket: a stale one that
+   * closes late must not clear the state a newer one has already set up. */
+  s.onopen = ()=>{
+    if (ws !== s) return;
+    wsUp = true; errs = 0;
+    rate.connected();
+    rate.slow(false);   /* a board just met is assumed to be reporting */
+    antSent = null;     /* and its antenna is written on the next ENTER */
+    staForget();        /* and its hold is not known until a read */
+    urateIx = undefined;
+    stopPoll();      /* superseded */
+    fetchState();    /* a client joining mid-session needs the panel once */
+    setSt('● Push','ok');
+  };
+  s.onmessage = (ev)=>{
+    if (ws !== s) return;
+    const f = decodeFrame(ev.data);
+    if (f) applyFrame(f);
+  };
+  s.onclose = ()=>{
+    if (ws !== s) return;
+    ws = null; wsUp = false;
+    if (!polling) return;
+    /* Fall back rather than go dark, and keep retrying. This is also the path a
+     * board that never had a socket takes, so retrying has to stay harmless to
+     * repeat indefinitely. */
+    startPoll();
+    setTimeout(connectWS, 2000);
+  };
+  s.onerror = ()=>{};   /* onclose always follows; recovery lives there */
+}
+
+function stopPoll(){ clearTimeout(timer); timer=null; }
+/* setTimeout rather than a direct call so `timer` is non-null straight away and
+ * a second startPoll() cannot begin a parallel chain. */
+function startPoll(){ if (timer===null && polling && !wsUp) timer=setTimeout(poll,0); }
+
+function startTransport(){
+  connectWS();
+  startPoll();
+  fetchState();
+  if (stateTimer===null) stateTimer=setInterval(fetchState, 1000);
+}
+
+/* The settings mirror. Cheap and slow-moving, so it is pulled rather than
+ * pushed — 1 Hz plus a debounced refresh after every write. */
+async function fetchState(){
+  if (!polling || rbBusy) return;
+  try{
+    const r=await fetch('/state',{cache:'no-store'});
+    if(!r.ok) throw 0;
+    applyState(await r.json());
+  }catch(e){
+    /* Not fatal: on the fallback path /data carries these fields itself, so
+     * this must not touch the status line. */
+  }
+}
+
+async function poll(){
+  timer=null;
+  /* A poll already in flight would otherwise re-arm the chain on its way
+   * out and undo the pause. */
+  if(!polling || wsUp || rbBusy) return;
+  try{
+    const r=await fetch('/data',{cache:'no-store'});
+    if(!r.ok) throw 0;
+    const d=await r.json();
+    errs=0; setSt(held() ? '● Polling (' + heldWhy() + ')' : '● Polling', held() ? '' : 'ok');
+    update(d);
+  }catch(e){
+    errs++;
+    setSt('● '+(errs>2?'No response':'Connecting...'), errs>2?'err':'');
+    /* The ESP itself stopped answering — clear the readouts, and lock the
+     * controls back down. Leaving them enabled would offer actions that cannot
+     * reach the module, and the version we unlocked on is no longer confirmed. */
+    if (errs>2) { showStatus(null); applyLocks(null); }
+  }
+  if (polling && !wsUp) timer=setTimeout(poll,100);
+}
+
+/* A frame older than this is treated as no data at all. The radar streams at
+ * 20 Hz (50 ms) and the board pushes each one as it lands, so anything past a
+ * second means the link is down, the module is powered down, or output was
+ * turned off — none of which should keep showing the last reading as if it were
+ * now. */
+const STALE_MS = 1000;
+
+/* Two tests, because they catch opposite failures. `age` is the board's own
+ * view, which covers a module that stopped streaming while the ESP still
+ * answers. The arrival check covers the reverse: if the ESP or the socket died,
+ * no fresh age can reach us, so the last small one would read as live forever. */
+function isLive(d){
+  /* Silent on purpose (see held()): the last frame stays on screen while the
+   * link is up. */
+  if (held() && polling && (wsUp || errs <= 2)) return !!(d && d.fresh);
+  return !!(d && d.fresh && d.age < STALE_MS
+            && (performance.now() - lastFrameAt) < STALE_MS);
+}
+
+/* Nothing arriving. The polling path already reports that in its own catch, but
+ * a socket that quietly stopped delivering looks exactly like a quiet room
+ * unless something repaints — so repaint, and let isLive() blank the readouts.
+ * 250 ms sits well inside STALE_MS and far below what an operator would notice. */
+setInterval(()=>{
+  if (!polling) return;
+  if (performance.now() - lastFrameAt <= STALE_MS) return;
+  /* Silent on purpose: say so in grey and leave the screen be. */
+  if (held()) { if (wsUp) setSt('● Push (' + heldWhy() + ')',''); return; }
+  const opQuiet = rbBusy || cooldownRunning || performance.now() - opDoneAt < STALE_MS;
+  if (wsUp && !opQuiet) setSt('● Push (no frames)','err');
+  showStatus(D); draw(D);
+}, 250);
+
+/* The middle overlay column: frame counter and presence, plus the plot's
+ * border glow. Presence has three states, because "no signal" and "nobody
+ * here" are not the same thing. Pass null when the ESP itself stopped
+ * answering — everything falls back to the no-data look. */
+/* "Nearest target only" — a browser-side display filter. Nothing is sent to the
+ * module and it takes no part in the ENTER batch, so the radar keeps tracking
+ * and reporting all three slots.
+ *   plot     draws only the closest Valid target
+ *   table    keeps every value on display; the chosen row stays at its normal
+ *            colour and the other two fade. Turning the filter off restores all
+ *            three rows.
+ * Repaint both here so toggling responds immediately even when polling is off. */
+let nearOnly = false;
+/* View flips, for a module mounted mirrored or upside down. Browser-side
+ * only - the radar keeps reporting the same angles either way. */
+let flipH = false, flipV = false;
+function toggleFlip(btn, axis){
+  const on = (axis === 'h') ? (flipH = !flipH) : (flipV = !flipV);
+  btn.classList.toggle('on', on);
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  draw(lastD);
+}
+/* Target dot size. Display only, like the flips: the same reading, drawn
+ * bigger. A checkbox rather than a button because it is its own indicator -
+ * the classList/aria half the buttons above need is what a tick already says.
+ *
+ * The plot does not repaint on a timer - paintFrame() runs only when a frame
+ * arrives - so with the transport quiet nothing would redraw and the box would
+ * look broken. Hence draw(lastD), which every view control here ends with. */
+let bigDots = false;
+function toggleBigDots(cb){
+  bigDots = cb.checked;
+  draw(lastD);
+}
+/* Whether the frame log is on screen, and the switch for it. Display only, like
+ * Nearest and the two flips: nothing reaches the module, and frameLog goes on
+ * recording while the panel is away, so putting it away costs no history. In the
+ * three-column layout it also hands 320 px back to the plot, which is why draw()
+ * runs here - that column has just changed width and the canvas is derived from
+ * it. */
+let logOpen = true;
+function toggleLog(btn){
+  logOpen = !logOpen;
+  $('app').classList.toggle('nolog', !logOpen);
+  btn.classList.toggle('on', logOpen);
+  btn.setAttribute('aria-pressed', logOpen ? 'true' : 'false');
+  btn.innerHTML = 'Log ' + (logOpen ? '&#9662;' : '&#9656;');
+  frameLog.head();
+  draw(lastD);
+}
+
+function toggleNear(btn){
+  nearOnly = !nearOnly;
+  btn.classList.toggle('on', nearOnly);
+  btn.setAttribute('aria-pressed', nearOnly ? 'true' : 'false');
+  draw(lastD);
+  showOut(lastD);
+}
+
+/* Which slot is closest to the radar: 0/1 = moving, 2 = stationary, -1 = none.
+ * Only Valid slots are eligible — an Empty or still-unconfirmed slot may carry
+ * a stale or candidate distance, and picking one of those would make the filter
+ * jump to a target that is not being displayed. */
+function nearestIdx(d, adv){
+  if (!isLive(d)) return -1;
+  const s = [d.moving[0], d.moving[1], d.stationary];
+  let best = -1, bd = Infinity;
+  for (let i=0;i<3;i++){
+    const o = s[i];
+    if (!o || o.st !== (i===2 ? 1 : (adv ? 3 : 1))) continue;
+    if (o.d < bd) { bd = o.d; best = i; }
+  }
+  return best;
+}
+
+/* Slot state as text. Which names apply depends on the reporting form, and
+ * the stationary slot has its own set in the advanced form
+ * (2 = Hidden, not Birth). */
+function stateName(st, adv, stationary){
+  if (!adv) return st === 1 ? 'Valid' : 'Empty';
+  if (stationary) return ['Empty','Valid','Hidden'][st] || '?';
+  return ['Empty','Check','Birth','Valid'][st] || '?';
+}
+
+/* Readout table. Rows grey out unless the slot is Valid, so a reading that is
+ * still a candidate (or left over in an Empty slot) cannot be misread as a
+ * confirmed target. */
+function showOut(d){
+  const live = isLive(d);
+  const adv  = live && advForm(d);
+  const rows = $('outTab').rows;
+  const slots = live ? [d.moving[0], d.moving[1], d.stationary] : [null,null,null];
+  /* All three slots are always reported with their real values, at full
+   * brightness. The Nearest filter is the only thing that fades a row, so
+   * switching it off always returns the whole table to normal. */
+  const near = nearOnly ? nearestIdx(d, adv) : -1;
+  for (let i=0;i<3;i++){
+    const o = slots[i], tr = rows[i+1], c = tr.cells;
+    const stat = (i === 2);
+    tr.classList.toggle('dim', nearOnly && i !== near);
+    /* Magnitude first, as on the Demo view's range-gate grid: it is the
+     * column read across the three rows at a glance, and a column that is
+     * scanned belongs at the edge rather than between two that are not. */
+    c[1].textContent = o ? o.m : '-';
+    c[2].textContent = o ? o.d : '-';
+    c[3].textContent = o ? (o.a/10).toFixed(1) : '-';
+    /* Speed is carried only by the frame that was asked for it - 0xF3 with
+     * the Moving mean speed bit - so a dash means the frame did not report
+     * it, NOT that the target is standing still. One that is standing still
+     * reports 0.
+     *
+     * Raw module units, not cm/s: the scale depends on the chirp
+     * configuration, so the module leaves that conversion to whoever knows
+     * which one is loaded. The sign needs no conversion and is most of the
+     * value - positive is approaching the radar.
+     *
+     * The stationary row is an end point, which is where a target stopped,
+     * so it has no speed to report and always reads a dash. */
+    c[4].textContent = (o && o.sp !== undefined) ? o.sp : '-';
+    /* The counter beside the state, as Valid(64). It is in every 0xF0 frame and
+     * was being decoded and thrown away.
+     *
+     * It is the slot's age: it climbs while the target keeps being seen and
+     * falls when it is missed, and the slot is released at zero - so what the
+     * Moving / Stationary counter limit and display threshold do is visible here and nowhere
+     * else on the page. Shown on an Empty slot too, at (0), because that zero
+     * is the end of the fall rather than a missing reading. */
+    c[5].textContent = o ? stateName(o.st, adv, stat) + '(' + o.cnt + ')' : '-';
+  }
+  /* The gates, when the frame brought them. Shown and hidden as a block: the
+   * modes that carry no gate block are the common case, and a table that is
+   * permanently four rows of dashes is the thing this replaced. */
+  const box = $('rgBox');
+  if (box) {
+    const rg = live && d.rg && d.rg.q && d.rg.q.mag && d.rg.q.mag.sta;
+    box.hidden = !rg;
+    if (rg) {
+      const q = d.rg.q, rows = $('rgTab').rows;
+      for (let i = 0; i < 4; i++) {
+        const c = rows[i + 1].cells;
+        /* Distance arrives in mm here, as the wire carried it - the Demo
+         * model's contract - while the table above it is already in cm. One
+         * division, at the only place that prints it. */
+        const gm = q.mag.sta[i], gd = q.dist.sta[i],
+              ga = q.ang.sta[i],  gs = q.spd && q.spd.sta ? q.spd.sta[i] : undefined;
+        c[1].textContent = (gm !== undefined) ? gm : '-';
+        c[2].textContent = (gd !== undefined) ? Math.floor(gd / 10) : '-';
+        c[3].textContent = (ga !== undefined) ? (ga / 10).toFixed(1) : '-';
+        /* A dash means the mode did not ask for speed per gate, not that the
+         * gate is still. The magnitude-only shapes carry neither. */
+        c[4].textContent = (gs !== undefined) ? gs : '-';
+      }
+    }
+  }
+  $('outFrame').textContent = live ? d.frame_index : '-';
+}
+
+function showStatus(d){
+  const live = isLive(d);
+
+  const fb = $('frameBox');
+  fb.textContent = live ? d.frame_index : 'no frame';
+  fb.classList.toggle('stale', !live);
+  showOut(d);
+
+  const box = $('humanBox'), val = box.querySelector('.hv');
+  if (!live)          { box.className = 'nd'; val.textContent = 'NO DATA'; }
+  else if (d.human)   { box.className = 'on'; val.textContent = 'YES';     }
+  else                { box.className = '';   val.textContent = 'NO';      }
+
+  cv.classList.toggle('present', live && !!d.human);
+}
+
+/* Repaint everything from the merged snapshot. */
+function repaintAll(){
+  showFw(D);
+  applyLocks(D);
+  showStatus(D);
+  $('nk').textContent = D.last_nack || 0;
+  /* Whatever changed the detection range - ENTER here, another browser, a
+   * setting restored from flash - the zoom follows it, in both directions, so
+   * applying a setting always leaves the whole live area inside the fan and
+   * never leaves a stale wider view behind when the range shrinks.
+   *
+   * On the CHANGE, not on every state: /state lands once a second, and
+   * re-asserting `want` each time would put the RANGE dropdown back within a
+   * second. rangeMaxSeen is what records the change. The first state still
+   * counts as a change, so a page that has just
+   * connected lines the fan up with what the module already holds. */
+  if (D.range_max_cm && D.range_max_cm !== rangeMaxSeen) {
+    rangeMaxSeen = D.range_max_cm;
+    const want = fanForRange(D.range_max_cm);
+    if (fanCm !== want) setFan(want);
+  }
+  draw(D);
+}
+
+/* Fast path — a pushed frame, up to 20 times a second.
+ *
+ * Decoding is cheap and unconditional; drawing is not, and is deferred to the
+ * next animation frame. That decoupling is what survives a bad link. TCP keeps
+ * order, so a client that drops out of range and comes back has to receive the
+ * whole queue the board went on pushing at it — several hundred stale frames —
+ * before it reaches the current one. Drawing each of those was the delay: not
+ * the data catching up, which takes moments, but a few hundred full repaints of
+ * the plot queued behind it.
+ *
+ * Now a burst collapses. However many frames arrive between two animation
+ * frames, only the last one is ever drawn, so a backlog costs a handful of
+ * repaints instead of one per frame and the display lands on the present almost
+ * at once. It also caps the work on a phone that cannot repaint at 20 Hz — the
+ * frame rate falls, the latency does not build.
+ *
+ * The Hz readout still counts every frame received, because that is what it is
+ * for: throughput, not how often the canvas was painted. */
+let pendingFrame = null, rafId = 0;
+
+function applyFrame(f){
+  /* Frames again: the module is sending, whoever woke it or turned it back on.
+   * Its counter ran on while it was quiet, so the gap is not a loss. */
+  if (held()) {
+    if (performance.now() - heldAt < HOLD_SETTLE_MS) return;
+    outOff = pwrDown = false; rate.connected();
+  }
+  Object.assign(D, f); lastD = D;
+  lastFrameAt = performance.now();
+  rate.tick(D.frame_index);
+  if (wsUp) setSt('● Push','ok');
+  pendingFrame = D;
+  if (!rafId) rafId = requestAnimationFrame(paintFrame);
+}
+
+function paintFrame(){
+  rafId = 0;
+  if (!pendingFrame) return;
+  pendingFrame = null;
+  showStatus(D);
+  draw(D);
+}
+
+/* Slow path — /state, 1 Hz plus a debounced refresh after any write. */
+function applyState(s){
+  Object.assign(D, s); lastD = D;
+  repaintAll();
+}
+
+/* Fallback path — /data, which carries frame and settings in one blob. */
+function update(d){
+  Object.assign(D, d); lastD = D;
+  lastFrameAt = performance.now();
+  rate.tick(D.frame_index);
+  repaintAll();
+}
+
+/* ===== Radar fan plot ===== */
+const cv=$('radar'), cx=cv.getContext('2d');
+
+function draw(d){
+  /* Half-disk fan: top at (cX, 40), radius rMax, always width-bound at
+   * W/2 - 30 so the fan looks the same at every size.
+   * The canvas is then made tall enough that the absolutely-positioned
+   * button stacks clear the arc: fan bottom (cY + rMax) + the tallest
+   * stack + its bottom offset. Deriving it beats a width breakpoint —
+   * the action buttons grazed the arc at ~600-760 px back when the
+   * height was just a fixed multiple of the width. */
+  const W=cv.width=cv.offsetWidth;
+  const cX=W/2, cY=40;
+  const rFan=(cX-30)*0.98;
+  /* Measure whatever overlays are on the plot right now rather than assuming:
+   * the wide layout moves the button stacks into the System card and grows the
+   * presence box, so any hard-coded height would be wrong at one breakpoint. */
+  let stack=0;
+  document.querySelectorAll('.radarwrap > .ovl')
+          .forEach(e=>{ stack=Math.max(stack, e.offsetHeight); });
+  const BOTTOM=14, PAD=6;
+  let H=Math.floor(cY+rFan+stack+BOTTOM+PAD);
+  /* On a wide screen the plot is sticky and its column can get very wide, so
+   * the derived height would run off the bottom of the viewport. Cap it and
+   * let the fan shrink instead. */
+  const cap=window.innerHeight-120;
+  if (H>cap && cap>240) H=cap;
+  H=cv.height=Math.max(220,H);
+  const rMax=Math.max(40, Math.min(rFan, H-cY-stack-BOTTOM-PAD));
+  const rangeCm = fanCm;
+  const rangeMM = rangeCm * 10;
+  const fovDeg10 = d && d.fov_deg10 ? d.fov_deg10 : 1200;
+  const fovMin = -fovDeg10/20, fovMax = fovDeg10/20;
+
+  cx.fillStyle=P.bg; cx.fillRect(0,0,W,H);
+
+  /* The two view flips, applied to coordinates rather than with a canvas
+   * transform: a transform would mirror the text along with the geometry and
+   * leave the ring and angle labels back to front. Horizontal mirrors about
+   * the fan's own axis; vertical mirrors within the fan's band, apex to rim,
+   * so the plot never swings down into the overlay row beneath it. Labels keep
+   * their values - a target that was at -35 deg still reads -35 deg, it has
+   * only moved to the side of the plot the operator is now looking at. */
+  const FX = (x)=> flipH ? (2*cX - x) : x;
+  const FY = (y)=> flipV ? (2*cY + rMax - y) : y;
+  /* Polar to screen: a = degrees off boresight, r = pixels from the apex. */
+  const PX = (a,r)=> FX(cX + r*Math.cos((90-a)*Math.PI/180));
+  const PY = (a,r)=> FY(cY + r*Math.sin((90-a)*Math.PI/180));
+
+  function polyAngle(a1,a2,color){
+    cx.fillStyle=color; cx.beginPath(); cx.moveTo(FX(cX),FY(cY));
+    const steps=30;
+    for(let i=0;i<=steps;i++){
+      const a=a1+(a2-a1)*i/steps;
+      cx.lineTo(PX(a,rMax), PY(a,rMax));
+    }
+    cx.closePath(); cx.fill();
+  }
+  if(fovMin>-90) polyAngle(-90,fovMin,P.dead);
+  if(fovMax<90)  polyAngle(fovMax, 90,P.dead);
+
+  /* Far distance gate, from the value the module is actually running (the same
+   * source as fovDeg10) rather than the fan's scale. The fan scale is a
+   * per-scene constant - a hand dryer plots 200 cm - while the gate is what the
+   * radar was told to report, so the two are equal only by coincidence. Shade
+   * the band beyond it. */
+  /* Both gates prefer what the module reports. Only when it has told us nothing
+   * — no board, or before the first /state — do they fall back to rangeApplied,
+   * so this file can be opened on its own and still show the shape of a
+   * setting. The preference matters: once connected, the plot must keep showing
+   * what the radar is actually running, not what someone has typed but not
+   * applied - that is drawn dashed, below. */
+  const panelInt = (id, dflt) => { const e = $(id); const n = e ? parseInt(e.value, 10) : NaN;
+                                   return isNaN(n) ? dflt : n; };
+  if (!rangeApplied) rangeApplied = { min: panelInt('i_rmin', 0), max: panelInt('i_rmax', rangeCm) };
+  const gateMax = (d && d.range_max_cm !== undefined) ? d.range_max_cm
+                                                      : rangeApplied.max;
+  const rOut = Math.max(0, Math.min(rMax, rMax * (gateMax*10) / rangeMM));
+  if(rMax-rOut > 0.5){
+    cx.fillStyle=P.dead; cx.beginPath();
+    const steps=30;
+    for(let i=0;i<=steps;i++){ const a=fovMin+(fovMax-fovMin)*i/steps;
+      cx.lineTo(PX(a,rMax), PY(a,rMax)); }
+    for(let i=steps;i>=0;i--){ const a=fovMin+(fovMax-fovMin)*i/steps;
+      cx.lineTo(PX(a,rOut), PY(a,rOut)); }
+    cx.closePath(); cx.fill();
+  }
+
+  /* Near distance gate, the mirror of the one above and from the same source.
+   * Nothing closer than this is reported, so leaving it bright drew a live area
+   * that is really blind — the one part of the plot that could mislead in the
+   * direction of "the radar should have seen that".
+   *
+   * No lower cut-off: any gate the module is running gets drawn, however small
+   * it comes out on the current scale. The only constraint is the one that has
+   * to hold for the shape to mean anything — a near gate inside the far one. */
+  const gateMin = (d && d.range_min_cm !== undefined) ? d.range_min_cm
+                                                      : rangeApplied.min;
+  /* Hoisted: the live-area outline below needs it too, so that its sides stop at
+   * the gate instead of running down to the apex. 0 = nothing to draw, which is
+   * also what keeps that outline's original apex shape when there is no gate. */
+  const rIn = Math.max(0, Math.min(rMax, rMax * (gateMin*10) / rangeMM));
+  if (rIn > 0.5) {
+    /* Origin outwards to the gate: the fan is a half-disk, so the inner shape is
+     * a wedge closed on the apex rather than an annulus. No outline of its own —
+     * the white live-area boundary draws this edge now, at the same weight as
+     * the far gate, so the two read as one shape rather than two conventions. */
+    cx.fillStyle=P.dead; cx.beginPath();
+    cx.moveTo(PX(fovMin,0), PY(fovMin,0));
+    for(let i=0;i<=30;i++){ const a=fovMin+(fovMax-fovMin)*i/30;
+      cx.lineTo(PX(a,rIn), PY(a,rIn)); }
+    cx.closePath(); cx.fill();
+  }
+
+  cx.strokeStyle=P.ring; cx.lineWidth=1;
+  cx.font='12px sans-serif'; cx.fillStyle=P.ringLb;
+  let step = rangeMM>10000?5000:(rangeMM>5000?2000:(rangeMM>2000?1000:(rangeMM>1000?500:200)));
+  for(let r=step;r<=rangeMM;r+=step){
+    const rr=rMax*r/rangeMM;
+    /* Polyline, not arc(): an arc is defined by a centre and a sweep, and
+     * neither survives a mirror the way a list of points does. */
+    cx.beginPath();
+    for(let a=-90;a<=90;a+=3) cx.lineTo(PX(a,rr), PY(a,rr));
+    cx.stroke();
+    /* Just inside whichever rim the mirror has put the label on, and clear of
+     * the chord on whichever side the fan now opens. */
+    cx.fillText((r/1000).toFixed(r%1000?1:0)+'m',
+                flipH ? FX(cX+rr)+4 : cX+rr-22,
+                FY(cY) + (flipV ? 14 : -4));
+  }
+
+  for(let a=-90;a<=90;a+=15){
+    cx.strokeStyle=P.spoke; cx.beginPath();
+    cx.moveTo(FX(cX),FY(cY));
+    cx.lineTo(PX(a,rMax), PY(a,rMax));
+    cx.stroke();
+    cx.fillStyle=P.angLb;
+    cx.fillText(a+'°', PX(a,rMax+12)-12, PY(a,rMax+12)+4);
+  }
+
+  cx.strokeStyle=P.chord; cx.lineWidth=2;
+  cx.beginPath();
+  cx.moveTo(PX(-90,rMax), PY(-90,rMax));
+  cx.lineTo(PX( 90,rMax), PY( 90,rMax));
+  cx.stroke();
+
+  /* The live area, as one closed shape: the FOV down the sides, the far gate
+   * across the front, and the near gate across the back. Drawn on the gates
+   * rather than on the rim of the fan — a boundary at the rim claims everything
+   * plotted is in range, which is false whenever a gate sits inside the scene's
+   * scale.
+   *
+   * With a near gate the sides run gate to gate and both ends are arcs, so the
+   * live area is an annular sector. Without one they meet at the apex and it is
+   * the wedge it always was. Same stroke either way: the near edge is as real a
+   * boundary as the far one and gets the same weight, rather than a dashed hint
+   * in another colour. */
+  const ARC = 48;
+  const arcAt = (r, from, to) => {
+    for(let i=0;i<=ARC;i++){ const a=from+(to-from)*i/ARC;
+      cx.lineTo(PX(a,r), PY(a,r)); }
+  };
+  const liveEdge = (ri, ro) => {
+    cx.beginPath();
+    if (ri > 0.5 && ri < ro - 0.5) {
+      cx.moveTo(PX(fovMin,ri), PY(fovMin,ri));
+      cx.lineTo(PX(fovMin,ro), PY(fovMin,ro));
+      arcAt(ro, fovMin, fovMax);
+      cx.lineTo(PX(fovMax,ri), PY(fovMax,ri));
+      arcAt(ri, fovMax, fovMin);
+      cx.closePath();
+    } else {
+      cx.moveTo(PX(fovMin,ro), PY(fovMin,ro));
+      cx.lineTo(FX(cX),FY(cY));
+      cx.lineTo(PX(fovMax,ro), PY(fovMax,ro));
+      arcAt(ro, fovMax, fovMin);
+    }
+    cx.stroke();
+  };
+  cx.strokeStyle=P.gate; cx.lineWidth=3;
+  liveEdge(rIn, rOut);
+
+  /* A detection range picked on the panel but not applied yet: the area it
+   * would give, dashed over the solid one the module is running, so before and
+   * after are both on the plot until ENTER - after which the module reports the
+   * new range and the solid line moves there. Offline the same, against
+   * rangeApplied. Only once the panel has been edited (dirty); picking the
+   * running values again leaves the solid line alone. upd() has already
+   * widened RANGE to a max past the plot's reach. */
+  const pMin = parseInt(v('i_rmin'), 10), pMax = parseInt(v('i_rmax'), 10);
+  if (dirty && !isNaN(pMin) && !isNaN(pMax) && pMax > pMin
+      && (pMin !== gateMin || pMax !== gateMax)) {
+    cx.save();
+    cx.setLineDash([8,6]);
+    cx.strokeStyle=P.gate; cx.lineWidth=2;
+    liveEdge(Math.max(0, Math.min(rMax, rMax * (pMin*10) / rangeMM)),
+             Math.max(0, Math.min(rMax, rMax * (pMax*10) / rangeMM)));
+    cx.restore();
+  }
+
+  /* FOV shrink: the field narrows with distance, so the sides of the live area
+   * are only the near-range width. Same arithmetic as the module's, copied from
+   * Calc_Linear_Shrink_Tenth() in kw330mp_algorithm.c rather than re-derived:
+   *
+   *     half(d) = max(fov/2 - ((shrink/2 * d_mm) >> 10),  fov_min/2)
+   *
+   * Two details that a re-derivation gets wrong: the >>10 applies to the whole
+   * product, not to d_mm on its own — it is the module's cheap stand-in for a
+   * divide by 1000, so the taper is a straight line running 2.4% shallow, and
+   * shifting d_mm first would turn it into a staircase — and all three angles
+   * are halved before use. Integer-truncated too, for the same reason the Q15
+   * values are: to land on the module's number rather than near it.
+   *
+   * Dashed, because unlike the range gates this is not an edge the module
+   * enforces at one radius — it is where the edge has moved to at each radius,
+   * and a solid line would compete with the boundary it sits inside.
+   *
+   * fov_angle_min is not in /state, so it comes from the Algorithm tab's control
+   * when that tab has been opened, and from the firmware default otherwise. */
+  const shrDeg10 = (d && d.shrink_deg10 !== undefined) ? d.shrink_deg10
+                                                       : panelInt('i_shr', 0) * 10;
+  if (shrDeg10 > 0) {
+    const fovMinDeg10 = panelInt('p_fovmin', 20) * 10;
+    const nearH = fovDeg10   >> 1;
+    const shrH  = shrDeg10   >> 1;
+    const minH  = fovMinDeg10 >> 1;
+    /* Half-angle in degrees at a given pixel radius. */
+    const halfAt = (rpx) => {
+      const mm = Math.round(rangeMM * rpx / rMax);
+      return Math.max(minH, nearH - ((shrH * mm) >> 10)) / 10;
+    };
+    cx.save();
+    cx.setLineDash([5,4]);
+    cx.strokeStyle=P.fov; cx.lineWidth=1.5;
+    const from = (rIn > 0.5) ? rIn : 0;
+    const stepPx = Math.max(1, (rOut - from) / 60);
+    for (const sgn of [-1, 1]) {
+      cx.beginPath();
+      for (let r = from; r <= rOut + 0.001; r = Math.min(r + stepPx, rOut)) {
+        const a = sgn * halfAt(r);
+        cx.lineTo(PX(a, r), PY(a, r));
+        if (r >= rOut) break;
+      }
+      cx.stroke();
+    }
+    cx.restore();
+  }
+
+  cx.fillStyle=P.origin; cx.beginPath(); cx.arc(FX(cX),FY(cY),4,0,2*Math.PI); cx.fill();
+  cx.fillStyle=P.mark; cx.font='bold 14px sans-serif';
+  cx.fillText('KEYWAVE KW307', 16, 20);
+
+  if(isLive(d)){
+    /* A slot holds a real target only at its Valid value, and which value that
+     * is depends on the module's state reporting form:
+     *   simple (default)  moving Valid = 1, stationary Valid = 1
+     *   advanced          moving Valid = 3, stationary Valid = 1
+     *                     (1 Checking / 2 Birth are unconfirmed candidates;
+     *                      stationary 2 = Hidden behind a moving target)
+     * advForm() is the form the frames actually arrive in, from what a frame
+     * has shown.
+     * Never test st !== 0; that only happens to work in the simple form. */
+    const MOVING_VALID = advForm(d) ? 3 : 1;
+    /* With the Nearest filter on, only the closest Valid slot is plotted. */
+    const near = nearOnly ? nearestIdx(d, advForm(d)) : -1;
+    const drawObj=(o,color,req,idx)=>{
+      if(!o || o.st!==req) return;
+      if(nearOnly && idx!==near) return;
+      let distCm=o.d, ang=o.a/10;
+      let distMM=distCm*10;
+      if(distMM>rangeMM) distMM=rangeMM;
+      const nd=(distMM/rangeMM)*rMax;
+      const x=PX(ang,nd), y=PY(ang,nd);
+      const R = bigDots ? 18 : 9;
+      cx.fillStyle=color; cx.beginPath(); cx.arc(x,y,R,0,2*Math.PI); cx.fill();
+      /* Two different origins in here, and they must not be confused.
+       *
+       * The badge is pushed clear of the DOT, so its left edge and its text
+       * inset follow R - they were 10 and 15, which is the radius plus 1 and
+       * plus 6. Leave them at 10 and a doubled dot swallows its own label.
+       *
+       * Its HEIGHT follows the TYPE: 22 px tall for 14 px text, top at y-10 so
+       * it stays centred on the dot, baseline 6 px below centre. Those do not
+       * scale - 2x is about seeing the target from further away, not about
+       * making the text bigger, and the badge stays centred on the dot at
+       * either size because it is centred on y, not on the radius. */
+      cx.font='bold 14px sans-serif';
+      const info=distCm+'cm / '+ang.toFixed(1)+'°';
+      const tw=cx.measureText(info).width;
+      cx.fillStyle=P.badgeBg; cx.fillRect(x+R+1,y-10,tw+10,22);
+      cx.strokeStyle=P.badgeBd; cx.lineWidth=1; cx.strokeRect(x+R+1,y-10,tw+10,22);
+      cx.fillStyle=color; cx.fillText(info, x+R+6, y+6);
+    };
+    drawObj(d.moving[0],  P.mv0, MOVING_VALID, 0);
+    drawObj(d.moving[1],  P.mv1, MOVING_VALID, 1);
+    drawObj(d.stationary, P.st, 1,            2);
+  }
+}
+
+/* The five action buttons belong over the plot in the narrow layout and in
+ * the System card in the wide one. CSS can restyle a node but cannot move it
+ * to another parent, so do that here and rerun on every breakpoint crossing.
+ * Inline onclick handlers survive reparenting, so nothing needs rebinding. */
+const WIDE = window.matchMedia('(min-width:1280px)');
+/* The frame log has a cut-off of its own: it only becomes a column once the
+ * window can spare the width for one. See the CSS block it belongs to. */
+const LOGCOL = window.matchMedia('(min-width:1560px)');
+function relayout(){
+  const wrap = document.querySelector('.radarwrap');
+  /* The module actions live in the System card at every width. */
+  const sys = $('sysHost');
+  sys.appendChild(document.querySelector('.mcuActs'));
+  /* The two readouts move together: over the plot in the wide layout, and
+   * stacked directly under it — presence strip first, then the table — in
+   * every narrower one. Keeping them adjacent is the point; splitting them
+   * across the plot edge made the same reading hard to follow. */
+  const host = WIDE.matches ? wrap : $('outHost');
+  host.appendChild(document.querySelector('.midStack'));
+  host.appendChild($('outCol'));
+  /* Nearest ends up on the plot either way: just above the readout frame in the
+   * wide layout, which sits in the plot's bottom-left corner, and in that
+   * corner directly otherwise. Done after the stacks move so it is never
+   * carried away with them into the System card. */
+  ;(WIDE.matches ? $('nearHost') : $('nearOnPlot')).appendChild($('nearGroup'));
+  /* The zoom dropdown rides with the presence box in the wide layout, where both
+   * are on the plot; elsewhere it takes the plot's bottom-right corner. */
+  ;(WIDE.matches ? document.querySelector('.midStack') : $('rangeOnPlot'))
+      .appendChild($('rangeBox'));
+  /* The frame log takes the right-hand column on a wide enough window and goes
+   * back to the settings column everywhere else. */
+  ;(LOGCOL.matches ? $('fLogHost') : $('fLogHome')).appendChild($('fLogPanel'));
+}
+const onBreakpoint = ()=>{ relayout(); draw(lastD); };
+[WIDE, LOGCOL].forEach(mq=>{
+  if (mq.addEventListener) mq.addEventListener('change', onBreakpoint);
+  else if (mq.addListener) mq.addListener(onBreakpoint);
+});
+relayout();
+
+/* ===== Theme ==============================================================
+ * Two palettes, stated twice because they have to be. The page's half is the
+ * token block at the top of the stylesheet, swapped by data-theme on the
+ * document element; the plot's half is here, because a canvas is painted
+ * rather than styled and can read no CSS at all. applyTheme() is the one place
+ * that moves both, so neither can be changed without the other.
+ *
+ * Remembered, unlike Nearest and the two flips. Those are per-session view
+ * filters over what the module is reporting; a theme is a preference about the
+ * room the screen is standing in, and having to set it again every time the
+ * page reloads is the sort of thing that makes someone stop using it.
+ *
+ * localStorage can throw outright rather than return nothing - a page opened
+ * from file:// in some browsers, a private window, site data blocked - so both
+ * touches of it are wrapped and the page works either way, just without
+ * remembering. */
+const PLOT = {
+  dark: {
+    bg:'#000',       dead:'#1e1e1e',  ring:'#333',     ringLb:'#999',
+    spoke:'#2a2a2a', angLb:'#666',    chord:'#444',    gate:'#fff',
+    fov:'#0af',      origin:'#f00',   mark:'#cfcfcf',
+    badgeBg:'#000',  badgeBd:'#fff',
+    mv0:'#00e0ff',   mv1:'#00a8ff',   st:'#ffcc00'
+  },
+  /* The three target colours are the only ones not simply darkened. On black
+   * the pair is cyan and blue, close together and still separable; on white
+   * both wash out and read as one colour, so moving 1 goes to indigo - the
+   * pair stays a pair, but the hue does the separating rather than lightness. */
+  light: {
+    bg:'#ffffff',    dead:'#eceff3',  ring:'#c3c8d0',  ringLb:'#5b626b',
+    spoke:'#dde1e6', angLb:'#6a717b', chord:'#aeb4bd', gate:'#1b1e23',
+    fov:'#0062bd',   origin:'#c22c18',mark:'#9aa1aa',
+    badgeBg:'#ffffff', badgeBd:'#1b1e23',
+    mv0:'#0092c4',   mv1:'#2547c8',   st:'#a85f00'
+  }
+};
+let theme = 'dark', P = PLOT.dark;
+
+function applyTheme(next){
+  theme = (next === 'light') ? 'light' : 'dark';
+  P = PLOT[theme];
+  /* Dark is what the stylesheet already says, so it carries no attribute -
+   * only light overrides. */
+  if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  else                   document.documentElement.removeAttribute('data-theme');
+  const b = $('themeBtn');
+  if (b){
+    b.textContent = (theme === 'light') ? '◑' : '◐';
+    b.title = (theme === 'light') ? 'Light theme. Press for the dark one.'
+                                  : 'Dark theme. Press for the light one.';
+    b.setAttribute('aria-pressed', (theme === 'light') ? 'true' : 'false');
+  }
+  draw(lastD);   /* the plot's colours live in P, which has just changed */
+}
+function toggleTheme(){
+  applyTheme(theme === 'light' ? 'dark' : 'light');
+  try { localStorage.setItem('kw307.theme', theme); } catch(e){}
+}
+try {
+  const saved = localStorage.getItem('kw307.theme');
+  if (saved === 'light' || saved === 'dark') applyTheme(saved);
+} catch(e){}
+
+/* Redraw on any resize: the canvas height now also tracks the viewport height,
+ * not just its own width. */
+window.addEventListener('resize', ()=>{ draw(lastD); });
+/* Customer panel pick-lists. Whole numbers whose range stops by 512 become
+ * lists; detection distance, max-stationary seconds and clutter speed run to
+ * 1000-3276 and keep their typed boxes.
+ *
+ * These must be filled before the first draw(): an empty select reports '' for
+ * its value, and the plot reads i_shr for the FOV shrink when the module has not
+ * reported one yet — so losing these silently took the shrink curve with them. */
+/* Shrink: every step to 6, where the fine ones matter, then by two to 16. */
+$('i_shr').appendChild(rangeOpts(0, 6, 1, ''));
+$('i_shr').appendChild(rangeOpts(8, 16, 2, ''));
+$('i_shr').value = 8;
+fillRange('i_mvmax',  1, 255, 1, '', 32);
+fillRange('i_mvshow', 1, 255, 1, '', 8);
+fillRange('i_stmax',  1, 255, 1, '', 64);
+fillRange('i_stshow', 1, 255, 1, '', 8);
+/* Presence hold zone angle: by 10 from 10 to 120, then by 20 to 180. */
+$('i_fsfov').appendChild(rangeOpts(10, 120, 10, ''));
+$('i_fsfov').appendChild(rangeOpts(140, 180, 20, ''));
+$('i_fsfov').value = 40;
+fillRange('i_cldev',  0,  50, 1, '', 20);
+
+/* HW Antenna on General Settings starts locked: nothing has read the FW yet.
+ * applyLocks() keeps it in step from the first /state on. */
+lockEq(lastD);
+draw(null);  /* initial paint so canvas sizes correctly before the first frame */
+startTransport();
+</script>
+</body></html>
+)HTMLEOF";
